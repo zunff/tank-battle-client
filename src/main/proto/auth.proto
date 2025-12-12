@@ -2,7 +2,7 @@ syntax = "proto3";
 package game;
 
 option java_package = "com.zunf.tankbattleclient.proto";
-option java_outer_classname = "GameProto";
+option java_outer_classname = "AuthProto";
 
 message LoginRequest {
   string token = 1;

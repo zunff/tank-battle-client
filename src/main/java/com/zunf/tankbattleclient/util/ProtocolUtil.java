@@ -9,10 +9,14 @@ public class ProtocolUtil {
 
 
     public static boolean verify(byte[] packet) {
-        if (packet == null || packet.length < HEADER_TOTAL_LENGTH) return false;
+        if (packet == null || packet.length < HEADER_TOTAL_LENGTH) {
+            return false;
+        }
 
         int length = ByteArrUtil.readInt(packet, 2);
-        if (length < 0 || packet.length != HEADER_TOTAL_LENGTH + length) return false;
+        if (length < 0 || packet.length != HEADER_TOTAL_LENGTH + length) {
+            return false;
+        }
 
         int expectedCrc = ByteArrUtil.readInt(packet, CRC32_FIELD_OFFSET);
 

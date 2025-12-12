@@ -18,8 +18,8 @@ import java.io.IOException;
 
 public class LoginController {
 
-    private AuthService authService = new AuthService();
-    private GameConnectionService gameConnectionService = new GameConnectionService();
+    private final AuthService authService = new AuthService();
+    private final GameConnectionService gameConnectionService = new GameConnectionService();
 
     @FXML
     private TextField usernameField;

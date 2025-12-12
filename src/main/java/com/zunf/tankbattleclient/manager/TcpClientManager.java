@@ -16,6 +16,12 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+/**
+ * TCP连接管理器
+ *
+ * @author zunf
+ * @date 2025/12/12 22:08
+ */
 public class TcpClientManager {
 
     private final String host;
@@ -33,6 +39,10 @@ public class TcpClientManager {
         this.port = port;
     }
 
+    public boolean isConnected() {
+        return socket != null && socket.isConnected() && running.get();
+    }
+
     public void connect() throws IOException {
         socket = new Socket(host, port);
         socket.setTcpNoDelay(true);
@@ -47,15 +57,28 @@ public class TcpClientManager {
     }
 
     public void send(byte type, byte version, byte[] body) {
-        if (!running.get()) return;
-        sendQueue.offer(new OutboundMessage(type, version, body));
+        if (!running.get()) {
+            return;
+        }
+        boolean offer = sendQueue.offer(new OutboundMessage(type, version, body));
+        if (!offer) {
+            System.out.println("消息队列已满，丢弃消息");
+        }
     }
 
     public void close() {
         running.set(false);
-        if (readerThread != null) readerThread.interrupt();
-        if (writerThread != null) writerThread.interrupt();
-        try { if (socket != null) socket.close(); } catch (IOException ignored) {}
+        if (readerThread != null) {
+            readerThread.interrupt();
+        }
+        if (writerThread != null) {
+            writerThread.interrupt();
+        }
+        try {
+            if (socket != null) {
+                socket.close();
+            }
+        } catch (IOException ignored) {}
     }
 
     private void startWriter(OutputStream out) {
@@ -64,6 +87,7 @@ public class TcpClientManager {
                 System.out.println("启动写入线程");
                 while (running.get()) {
                     OutboundMessage m = sendQueue.take(); // 阻塞
+                    System.out.println("发送消息");
                     byte[] packet = ProtocolEncoder.encode(m.getType(), m.getVersion(), m.getBody());
                     out.write(packet);
                     out.flush();
@@ -109,7 +133,9 @@ public class TcpClientManager {
         readerThread.start();
     }
 
-    // ====== 在 UI 层实现这两个回调 ======
+    /**
+     * ====== 在 UI 层实现这两个回调 ======
+     */
     protected void onMessage(InboundMessage msg) {
         // UI 更新：显示聊天、房间信息等
     }
