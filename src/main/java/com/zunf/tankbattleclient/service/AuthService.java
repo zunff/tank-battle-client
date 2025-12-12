@@ -1,4 +1,4 @@
-package com.zunf.tankbattleclient.service.remote;
+package com.zunf.tankbattleclient.service;
 
 public class AuthService {
 

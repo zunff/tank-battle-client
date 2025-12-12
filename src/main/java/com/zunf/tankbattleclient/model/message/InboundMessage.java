@@ -11,4 +11,16 @@ public class InboundMessage {
         this.version = version;
         this.body = body;
     }
+
+    public byte getType() {
+        return type;
+    }
+
+    public byte getVersion() {
+        return version;
+    }
+
+    public byte[] getBody() {
+        return body;
+    }
 }

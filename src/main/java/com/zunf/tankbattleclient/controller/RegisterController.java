@@ -11,7 +11,7 @@ import javafx.stage.Stage;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import com.zunf.tankbattleclient.service.remote.AuthService;
+import com.zunf.tankbattleclient.service.AuthService;
 
 import java.io.IOException;
 

@@ -11,15 +11,15 @@ import javafx.stage.Stage;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import com.zunf.tankbattleclient.service.remote.AuthService;
-import com.zunf.tankbattleclient.service.GameConnectionService;
+import com.zunf.tankbattleclient.service.AuthService;
+import com.zunf.tankbattleclient.manager.GameConnectionManager;
 
 import java.io.IOException;
 
 public class LoginController {
 
     private final AuthService authService = new AuthService();
-    private final GameConnectionService gameConnectionService = new GameConnectionService();
+    private final GameConnectionManager gameConnectionManager = GameConnectionManager.getInstance();
 
     @FXML
     private TextField usernameField;
@@ -59,7 +59,7 @@ public class LoginController {
             System.out.println("用户 " + username + " 登录成功，token: " + token);
             
             // 连接游戏服务器并发送登录消息
-            gameConnectionService.connectAndLogin(token);
+            gameConnectionManager.connectAndLogin(token);
             
             // 登录成功后的操作可以在这里添加
         } else {
