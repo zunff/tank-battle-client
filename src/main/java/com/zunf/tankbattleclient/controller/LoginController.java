@@ -59,7 +59,20 @@ public class LoginController {
             System.out.println("用户 " + username + " 登录成功，token: " + token);
             
             // 连接游戏服务器并发送登录消息
-            gameConnectionManager.connectAndLogin(token);
+            gameConnectionManager.connectAndLogin(token, response -> {
+                if (response.getCode() == 0) {
+                    // 登录成功
+                    messageLabel.setText("登录成功！欢迎 " + username);
+                    messageLabel.setStyle("-fx-text-fill: green;");
+                    System.out.println("用户 " + username + " 登录成功，player_id: " + response.getPlayerId());
+                    // 这里可以添加跳转到游戏主界面的逻辑
+                } else {
+                    // 登录失败
+                    messageLabel.setText("登录失败: " + response.getMessage());
+                    messageLabel.setStyle("-fx-text-fill: red;");
+                    System.err.println("用户 " + username + " 登录失败: " + response.getMessage());
+                }
+            });
             
             // 登录成功后的操作可以在这里添加
         } else {
