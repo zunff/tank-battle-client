@@ -1,12 +1,12 @@
 package com.zunf.tankbattleclient.controller;
 
-import com.google.protobuf.MessageLite;
+import com.google.protobuf.InvalidProtocolBufferException;
 import com.zunf.tankbattleclient.enums.GameMsgType;
 import com.zunf.tankbattleclient.manager.GameConnectionManager;
-import com.zunf.tankbattleclient.manager.MsgCallbackEventManager;
 import com.zunf.tankbattleclient.manager.ViewManager;
-import com.zunf.tankbattleclient.proto.AuthProto;
+import com.zunf.tankbattleclient.game.auth.AuthProto;
 import com.zunf.tankbattleclient.service.AuthService;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -16,12 +16,14 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.VBox;
 
 import java.io.IOException;
-import java.util.function.Consumer;
 
 public class LoginController extends ViewLifecycle {
 
     private final AuthService authService = new AuthService();
     private final GameConnectionManager gameConnectionManager = GameConnectionManager.getInstance();
+    
+    // 登录状态标记，用于防抖
+    private boolean isLoggingIn = false;
 
     @FXML
     private TextField usernameField;
@@ -43,6 +45,11 @@ public class LoginController extends ViewLifecycle {
 
     @FXML
     protected void onLoginClick(ActionEvent event) {
+        // 检查是否正在登录，防止重复点击
+        if (isLoggingIn) {
+            return;
+        }
+        
         String username = usernameField.getText();
         String password = passwordField.getText();
 
@@ -53,35 +60,69 @@ public class LoginController extends ViewLifecycle {
             return;
         }
 
+        // 禁用按钮并显示登录中状态
+        isLoggingIn = true;
+        loginButton.setDisable(true);
+        loginButton.setText("登录中...");
+        messageLabel.setText("正在登录，请稍候...");
+        messageLabel.setStyle("-fx-text-fill: blue;");
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
         // 使用AuthService进行登录
         String token = authService.login(username, password);
-        if (token != null) {
-            try {
-                if (!gameConnectionManager.isConnected()) {
-                    gameConnectionManager.connect();
-                }
-                gameConnectionManager.sendAndListen(GameMsgType.LOGIN, AuthProto.LoginRequest.newBuilder().setToken(token).build(), response -> {
-                    AuthProto.LoginResponse loginResponse = (AuthProto.LoginResponse) response;
-                    if (loginResponse.getCode() == 0) {
-                        // 登录成功
-                        messageLabel.setText("登录成功！欢迎 " + username);
-                        messageLabel.setStyle("-fx-text-fill: green;");
-                        System.out.println("用户 " + username + " 登录成功，player_id: " + loginResponse.getPlayerId());
-                        // 这里可以添加跳转到游戏主界面的逻辑
-                    } else {
-                        // 登录失败
-                        messageLabel.setText("登录失败: " + loginResponse.getMessage());
-                        messageLabel.setStyle("-fx-text-fill: red;");
-                        System.err.println("用户 " + username + " 登录失败: " + loginResponse.getMessage());
-                    }
-                });
-            } catch (IOException e) {
-                messageLabel.setText("无法连接到服务器");
+        if (token == null) {
+            Platform.runLater(() -> {
+                messageLabel.setText("登录失败，请检查用户名和密码");
                 messageLabel.setStyle("-fx-text-fill: red;");
+            });
+            // 登录失败时恢复按钮状态
+            isLoggingIn = false;
+            Platform.runLater(() -> {
+                loginButton.setDisable(false);
+                loginButton.setText("登录");
+            });
+        }
+
+        try {
+            if (!gameConnectionManager.isConnected()) {
+                gameConnectionManager.connect();
             }
-        } else {
-            messageLabel.setText("登录失败，请检查用户名和密码");
+            gameConnectionManager.sendAndListen(GameMsgType.LOGIN, AuthProto.LoginRequest.newBuilder().setToken(token).build(), response -> {
+                AuthProto.LoginResponse loginResponse = null;
+                try {
+                    loginResponse = AuthProto.LoginResponse.parseFrom(response.getPayloadBytes());
+                } catch (InvalidProtocolBufferException e) {
+                    throw new RuntimeException(e);
+                }
+                if (response.getCode() == 0) {
+                    // 登录成功
+                    messageLabel.setText("登录成功！欢迎 " + username);
+                    messageLabel.setStyle("-fx-text-fill: green;");
+                    System.out.println("用户 " + username + " 登录成功，player_id: " + loginResponse.getPlayerId());
+                    // 这里可以添加跳转到游戏主界面的逻辑
+                } else {
+                    // 登录失败
+                    messageLabel.setText("登录失败: " + response.getMessage());
+                    messageLabel.setStyle("-fx-text-fill: red;");
+                    System.err.println("用户 " + username + " 登录失败: " + response.getMessage());
+                }
+            });
+        } catch (Exception e) {
+            messageLabel.setText("无法连接到服务器");
             messageLabel.setStyle("-fx-text-fill: red;");
+            // 发生异常时恢复按钮状态
+            isLoggingIn = false;
+            loginButton.setDisable(false);
+            loginButton.setText("登录");
+        }  finally {
+            // 无论成功还是失败，都恢复按钮状态
+            isLoggingIn = false;
+            loginButton.setDisable(false);
+            loginButton.setText("登录");
         }
     }
 

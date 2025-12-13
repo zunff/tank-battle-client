@@ -1,7 +1,7 @@
 package com.zunf.tankbattleclient.manager;
 
 import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.MessageLite;
+import com.zunf.tankbattleclient.common.CommonProto;
 import com.zunf.tankbattleclient.enums.GameMsgType;
 import com.zunf.tankbattleclient.model.message.InboundMessage;
 
@@ -33,13 +33,13 @@ public class MsgCallbackEventManager {
     }
 
     // 回调映射表：消息类型 -> 多个回调函数，收到对应消息时执行对应回调
-    private final Map<GameMsgType, CopyOnWriteArrayList<Consumer<MessageLite>>> responseCallbacks = new ConcurrentHashMap<>();
+    private final Map<GameMsgType, CopyOnWriteArrayList<Consumer<CommonProto.BaseResponse>>> responseCallbacks = new ConcurrentHashMap<>();
 
     /**
      * 监听消息
      */
-    public void listenMessage(GameMsgType msgType, Consumer<MessageLite> callback) {
-        CopyOnWriteArrayList<Consumer<MessageLite>> list = responseCallbacks.computeIfAbsent(msgType, k -> new CopyOnWriteArrayList<>());
+    public void listenMessage(GameMsgType msgType, Consumer<CommonProto.BaseResponse> callback) {
+        CopyOnWriteArrayList<Consumer<CommonProto.BaseResponse>> list = responseCallbacks.computeIfAbsent(msgType, k -> new CopyOnWriteArrayList<>());
         // 防重复：同一个 callback 实例不重复加入
         if (!list.contains(callback)) {
             list.add(callback);
@@ -49,8 +49,8 @@ public class MsgCallbackEventManager {
     /**
      * 移除监听
      */
-    public void removeListener(GameMsgType msgType, Consumer<MessageLite> callback) {
-        CopyOnWriteArrayList<Consumer<MessageLite>> callbacks = responseCallbacks.get(msgType);
+    public void removeListener(GameMsgType msgType, Consumer<CommonProto.BaseResponse> callback) {
+        CopyOnWriteArrayList<Consumer<CommonProto.BaseResponse>> callbacks = responseCallbacks.get(msgType);
         if (callbacks != null) {
             callbacks.remove(callback);
         }
@@ -60,18 +60,18 @@ public class MsgCallbackEventManager {
      * 收到消息时触发
      */
     public void triggerCallback(GameMsgType msgType, InboundMessage message) {
-        List<Consumer<MessageLite>> callbacks = responseCallbacks.get(msgType);
+        List<Consumer<CommonProto.BaseResponse>> callbacks = responseCallbacks.get(msgType);
         if (callbacks != null) {
-            MessageLite messageLite;
+            CommonProto.BaseResponse baseResponse;
             try {
-                messageLite = msgType.getRespMsg().parseFrom(message.getBody());
+                baseResponse = CommonProto.BaseResponse.parseFrom(message.getBody());
             } catch (InvalidProtocolBufferException e) {
                 System.out.println("MsgCallbackEventManager 解析消息失败: " + e.getMessage());
                 return;
             }
             // 触发回调
-            for (Consumer<MessageLite> callback : callbacks) {
-                callback.accept(messageLite);
+            for (Consumer<CommonProto.BaseResponse> callback : callbacks) {
+                callback.accept(baseResponse);
             }
         }
     }
