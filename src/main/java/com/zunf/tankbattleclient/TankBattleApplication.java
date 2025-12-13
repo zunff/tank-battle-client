@@ -1,5 +1,6 @@
 package com.zunf.tankbattleclient;
 
+import com.zunf.tankbattleclient.manager.ViewManager;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -10,11 +11,8 @@ import java.io.IOException;
 public class TankBattleApplication extends Application {
     @Override
     public void start(Stage stage) throws IOException {
-        FXMLLoader fxmlLoader = new FXMLLoader(TankBattleApplication.class.getResource("login-view.fxml"));
-        Scene scene = new Scene(fxmlLoader.load(), 350, 400);
-        stage.setTitle("坦克大战 - 登录");
-        stage.setScene(scene);
-        stage.show();
+        ViewManager viewManager = ViewManager.newInstance(stage);
+        viewManager.show("login-view.fxml", "坦克大战 - 登录", 350, 400);
     }
 
     public static void main(String[] args) {

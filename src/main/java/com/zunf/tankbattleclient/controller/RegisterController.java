@@ -1,17 +1,14 @@
 package com.zunf.tankbattleclient.controller;
 
+import com.zunf.tankbattleclient.manager.ViewManager;
+import com.zunf.tankbattleclient.service.AuthService;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
-import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
-import javafx.stage.Stage;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
-import com.zunf.tankbattleclient.service.AuthService;
 
 import java.io.IOException;
 
@@ -75,13 +72,7 @@ public class RegisterController {
     protected void onBackToLoginClick(ActionEvent event) {
         try {
             // 返回到登录页面
-            FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/com/zunf/tankbattleclient/login-view.fxml"));
-            Parent root = fxmlLoader.load();
-            
-            Stage stage = (Stage) backToLoginButton.getScene().getWindow();
-            Scene scene = new Scene(root);
-            stage.setScene(scene);
-            stage.show();
+            ViewManager.getInstance().show("login-view.fxml", "登录", 300, 200);
         } catch (IOException e) {
             e.printStackTrace();
             messageLabel.setText("无法返回登录页面");

@@ -114,9 +114,13 @@ public class TcpClientManager {
                 System.out.println("启动读取线程");
                 while (running.get()) {
                     fr.readFrom(in); // 阻塞读
+                    System.out.println("收到服务器消息");
                     for (;;) {
                         InboundMessage msg = fr.tryDecodeOne();
-                        if (msg == null) break;
+                        if (msg == null) {
+                            System.out.println("没有完整的消息");
+                            break;
+                        }
 
                         // 回到 UI 线程处理
                         Platform.runLater(() -> onMessage(msg));
