@@ -6,6 +6,8 @@ import com.zunf.tankbattleclient.model.message.InboundMessage;
 import com.zunf.tankbattleclient.proto.AuthProto;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 /**
  * 游戏连接管理器 单例
@@ -30,17 +32,31 @@ public final class GameConnectionManager extends TcpClientManager {
         return INSTANCE;
     }
 
-    private final MsgCallbackEventManager callbackEventManager;
+    private final MsgCallbackEventManager msgCallbackEventManager;
+
+    private final RequestCallbackEventManager requestCallbackEventManager;
+
+    private final AtomicInteger requestIdAtomic = new AtomicInteger(1);
 
     private GameConnectionManager(String host, int port) {
         super(host, port);
-        callbackEventManager = MsgCallbackEventManager.getInstance();
+        msgCallbackEventManager = MsgCallbackEventManager.getInstance();
+        requestCallbackEventManager = RequestCallbackEventManager.getInstance();
         System.out.println("创建游戏连接管理器");
     }
 
     public void send(GameMsgType type, MessageLite message) throws IOException {
         byte[] body = message == null ? new byte[0] : message.toByteArray();
-        super.send((byte) type.getCode(), (byte) ConfigManager.getInstance().getProtocolVersion(), body);
+        int requestId  = requestIdAtomic.getAndIncrement();
+        System.out.println("发送消息: " + type + " 请求ID: " + requestId);
+        super.send((byte) type.getCode(), (byte) ConfigManager.getInstance().getProtocolVersion(), requestId, body);
+    }
+
+    public void sendAndListen(GameMsgType type, MessageLite message, Consumer<MessageLite> callback) throws IOException {
+        int requestId = requestIdAtomic.getAndIncrement();
+        System.out.println("发送消息: " + type + " 监听ID: " + requestId);
+        requestCallbackEventManager.listenRequest(requestId, callback);
+        super.send((byte) type.getCode(), (byte) ConfigManager.getInstance().getProtocolVersion(), requestId, message.toByteArray());
     }
 
 
@@ -60,7 +76,8 @@ public final class GameConnectionManager extends TcpClientManager {
     @Override
     protected void onMessage(InboundMessage msg) {
         GameMsgType msgType = GameMsgType.of(msg.getType() & 0xFF);
-        System.out.println("收到服务器消息: " + msgType);
-        callbackEventManager.triggerCallback(msgType, msg);
+        System.out.println("收到服务器消息: " + msgType + " 请求ID: " + msg.getRequestId());
+        msgCallbackEventManager.triggerCallback(msgType, msg);
+        requestCallbackEventManager.triggerCallback(msg.getRequestId(), msgType, msg);
     }
 }

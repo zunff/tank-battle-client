@@ -13,7 +13,7 @@ public class ProtocolUtil {
             return false;
         }
 
-        int length = ByteArrUtil.readInt(packet, 2);
+        int length = ByteArrUtil.readInt(packet, BODY_LENGTH_FIELD_OFFSET);
         if (length < 0 || packet.length != HEADER_TOTAL_LENGTH + length) {
             return false;
         }

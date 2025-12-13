@@ -8,7 +8,7 @@
 5. 发送的消息格式为：自定义协议头+消息体
 
 ## 自定义协议
-1. 协议头为10字节：操作类型(1B) + 版本号(1B) + 协议体长度(4B) + 校验码(4B)
+1. 协议头为10字节：操作类型(1B) + 版本号(1B) + 请求ID(4B) + 协议体长度(4B) + 校验码(4B)
 2. 校验码：将 操作类型、版本号、协议体长度、消息体 进行CRC32加密，得到校验码
 3. 消息体：不同的操作类型对应不同的消息体，序列化方式为protobuf
 
@@ -26,9 +26,14 @@ protobuf（Protocol Buffers）是 Google 开发的一种语言无关、平台无
 2. 所有Controller都必须继承ViewLifecycle 并实现 onShow 和 onHide 方法
 3. 跳转页面时，使用ViewManager的 show 方法，这个方法里会调用旧页面的onHide 方法，并调用新页面的 onShow 方法
 
-## 消息监听总线 MsgCallbackEventManager
+## 消息类型回调监听总线 MsgCallbackEventManager
 为了消息发送和接收的解耦，消息监听总线用于管理消息监听器，当接收到对应的消息时，会调用对应的消息监听器进行处理。
 1. 获取MsgCallbackEventManager实例
 2. 在 controller 中的 实现 ViewLifecycle 的 onShow 方法，调用MsgCallbackEventManager.addMsgCallbackListener(msgType, listener)方法，注册当前页面要监听消息和处理消息的回调
 3. 在 controller 中的 实现 ViewLifecycle 的 onHide 方法，在切换页面时，调用MsgCallbackEventManager.removeMsgCallbackListener(msgType)方法，注销当前页面的监听器，避免重复监听
 4. 当接收到消息时，会使用MsgType中的Parser解析消息体，并回调所有该MsgType的消息监听器(Consumer)进行处理
+
+## 请求ID回调事件总线 RequestIdCallbackEventManager
+1. 获取RequestIdCallbackEventManager实例
+2. 调用GameConnectionManager.sendAndListen 发送消息时指定callback逻辑，会将requestId与callback的映射存到map
+3. 当返回消息时，会通知requestId对应的callback进行处理

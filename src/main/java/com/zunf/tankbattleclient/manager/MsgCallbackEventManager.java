@@ -12,7 +12,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
 /**
- * 消息回调事件总线
+ * 消息类型回调事件总线
  *
  * @author zunf
  * @date 2025/12/12 23:07
@@ -66,7 +66,7 @@ public class MsgCallbackEventManager {
             try {
                 messageLite = msgType.getRespMsg().parseFrom(message.getBody());
             } catch (InvalidProtocolBufferException e) {
-                System.out.println("解析消息失败: " + e.getMessage());
+                System.out.println("MsgCallbackEventManager 解析消息失败: " + e.getMessage());
                 return;
             }
             // 触发回调

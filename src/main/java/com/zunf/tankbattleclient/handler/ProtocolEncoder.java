@@ -7,7 +7,7 @@ import static com.zunf.tankbattleclient.constant.ProtocolConstant.*;
 
 public class ProtocolEncoder {
 
-    public static byte[] encode(byte type, byte version, byte[] body) {
+    public static byte[] encode(byte type, byte version, int requestId, byte[] body) {
         if (body == null) body = new byte[0];
         int length = body.length;
 
@@ -16,6 +16,7 @@ public class ProtocolEncoder {
         // 1) 写 header（crc 先占位 0）
         packet[0] = type;
         packet[1] = version;
+        ByteArrUtil.writeInt(packet, REQUEST_ID_FIELD_OFFSET, requestId);
         ByteArrUtil.writeInt(packet, BODY_LENGTH_FIELD_OFFSET, length);     // length at offset 2
         ByteArrUtil.writeInt(packet, CRC32_FIELD_OFFSET, 0); // crc placeholder
 

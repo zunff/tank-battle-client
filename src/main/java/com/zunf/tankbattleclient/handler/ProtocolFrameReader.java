@@ -33,11 +33,11 @@ public final class ProtocolFrameReader {
             throw new IOException("CRC32 mismatch");
         }
 
-        int idx = 0;
-        int type = data[idx++] & 0xFF;
-        int version = data[idx++] & 0xFF;
+        int type = data[OPERATION_TYPE_FIELD_OFFSET] & 0xFF;
+        int version = data[VERSION_FIELD_OFFSET] & 0xFF;
+        int requestId = ByteArrUtil.readInt(data, REQUEST_ID_FIELD_OFFSET);
 
-        int length = ByteArrUtil.readInt(data, idx); idx += 4;
+        int length = ByteArrUtil.readInt(data, BODY_LENGTH_FIELD_OFFSET);
 
         if (length < 0 || length > 10_000_000) { // 防御：最大包体限制自己定
             throw new IOException("Invalid length: " + length);
@@ -53,7 +53,7 @@ public final class ProtocolFrameReader {
         buffer.reset();
         buffer.write(remaining);
 
-        return new InboundMessage((byte) type, (byte) version, body);
+        return new InboundMessage((byte) type, (byte) version, requestId, body);
     }
     
 }

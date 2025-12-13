@@ -56,11 +56,11 @@ public class TcpClientManager {
         startReader(in);
     }
 
-    public void send(byte type, byte version, byte[] body) {
+    public void send(byte type, byte version, int requestId, byte[] body) {
         if (!running.get()) {
             return;
         }
-        boolean offer = sendQueue.offer(new OutboundMessage(type, version, body));
+        boolean offer = sendQueue.offer(new OutboundMessage(type, version, requestId, body));
         if (!offer) {
             System.out.println("消息队列已满，丢弃消息");
         }
@@ -88,7 +88,7 @@ public class TcpClientManager {
                 while (running.get()) {
                     OutboundMessage m = sendQueue.take(); // 阻塞
                     System.out.println("发送消息");
-                    byte[] packet = ProtocolEncoder.encode(m.getType(), m.getVersion(), m.getBody());
+                    byte[] packet = ProtocolEncoder.encode(m.getType(), m.getVersion(), m.getRequestId(), m.getBody());
                     out.write(packet);
                     out.flush();
                 }
@@ -127,6 +127,7 @@ public class TcpClientManager {
                     }
                 }
             } catch (IOException e) {
+                e.printStackTrace();
                 running.set(false);
                 Platform.runLater(() -> onDisconnected(e));
             } finally {
