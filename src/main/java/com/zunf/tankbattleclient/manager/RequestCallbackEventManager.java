@@ -1,6 +1,7 @@
 package com.zunf.tankbattleclient.manager;
 
 import com.google.protobuf.MessageLite;
+import com.zunf.tankbattleclient.common.CommonProto;
 import com.zunf.tankbattleclient.enums.GameMsgType;
 import com.zunf.tankbattleclient.model.message.InboundMessage;
 
@@ -29,9 +30,9 @@ public class RequestCallbackEventManager {
         return INSTANCE;
     }
 
-    private final Map<Integer, Consumer<MessageLite>> requestCallbacks = new ConcurrentHashMap<>();
+    private final Map<Integer, Consumer<CommonProto.BaseResponse>> requestCallbacks = new ConcurrentHashMap<>();
 
-    public void listenRequest(int requestId, Consumer<MessageLite> callback) {
+    public void listenRequest(int requestId, Consumer<CommonProto.BaseResponse> callback) {
         requestCallbacks.put(requestId, callback);
     }
 
@@ -40,16 +41,16 @@ public class RequestCallbackEventManager {
     }
 
     public void triggerCallback(int requestId, GameMsgType msgType, InboundMessage message) {
-        Consumer<MessageLite> callback = requestCallbacks.get(requestId);
+        Consumer<CommonProto.BaseResponse> callback = requestCallbacks.get(requestId);
         if (callback != null) {
-            MessageLite messageLite;
+            CommonProto.BaseResponse baseResponse;
             try {
-                messageLite = msgType.getRespMsg().parseFrom(message.getBody());
+                baseResponse = CommonProto.BaseResponse.parseFrom(message.getBody());
             } catch (Exception e) {
                 System.out.println("RequestCallbackEventManager 解析消息失败: " + e.getMessage());
                 return;
             }
-            callback.accept(messageLite);
+            callback.accept(baseResponse);
             // 移除监听
             removeListener(requestId);
         }
