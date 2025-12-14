@@ -21,7 +21,7 @@ public class LoginController extends ViewLifecycle {
 
     private final AuthService authService = new AuthService();
     private final GameConnectionManager gameConnectionManager = GameConnectionManager.getInstance();
-    
+
     // 登录状态标记，用于防抖
     private boolean isLoggingIn = false;
 
@@ -49,7 +49,7 @@ public class LoginController extends ViewLifecycle {
         if (isLoggingIn) {
             return;
         }
-        
+
         String username = usernameField.getText();
         String password = passwordField.getText();
 

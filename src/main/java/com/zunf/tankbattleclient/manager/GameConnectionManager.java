@@ -53,11 +53,25 @@ public final class GameConnectionManager extends TcpClientManager {
         super.send((byte) type.getCode(), (byte) ConfigManager.getInstance().getProtocolVersion(), requestId, body);
     }
 
-    public void sendAndListen(GameMsgType type, MessageLite message, Consumer<CommonProto.BaseResponse> callback) throws IOException {
+    public void sendAndListen(GameMsgType type, MessageLite message, Consumer<MessageLite> callback) throws IOException {
         int requestId = requestIdAtomic.getAndIncrement();
         System.out.println("发送消息: " + type + " 监听ID: " + requestId);
         requestCallbackEventManager.listenRequest(requestId, callback);
         super.send((byte) type.getCode(), (byte) ConfigManager.getInstance().getProtocolVersion(), requestId, message.toByteArray());
+    }
+
+
+    public void connectAndLogin(String token) {
+        try {
+            if (!isConnected()) {
+                connect();
+            }
+            // 使用通用send方法发送登录消息
+            send(GameMsgType.LOGIN, AuthProto.LoginRequest.newBuilder().setToken(token).build());
+            System.out.println("成功连接到游戏服务器并发送登录消息");
+        } catch (IOException e) {
+            System.err.println("连接或登录失败: " + e.getMessage());
+        }
     }
 
     @Override
