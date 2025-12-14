@@ -1,7 +1,7 @@
 package com.zunf.tankbattleclient.manager;
 
 import com.google.protobuf.MessageLite;
-import com.zunf.tankbattleclient.common.CommonProto;
+import com.zunf.tankbattleclient.protobuf.CommonProto;
 import com.zunf.tankbattleclient.enums.GameMsgType;
 import com.zunf.tankbattleclient.model.message.InboundMessage;
 
