@@ -1,5 +1,9 @@
 package com.zunf.tankbattleclient.enums;
 
+import com.google.protobuf.MessageLite;
+import com.google.protobuf.Parser;
+import com.zunf.tankbattleclient.protobuf.game.auth.AuthProto;
+
 import java.util.Arrays;
 
 public enum GameMsgType {
@@ -14,6 +18,7 @@ public enum GameMsgType {
     UNKNOWN(255);
 
     private final int code;
+    private Parser<? extends MessageLite> parser;
 
     public static GameMsgType of(int code) {
         return Arrays.stream(values()).filter(v -> v.code == code).findFirst().orElse(UNKNOWN);
@@ -21,9 +26,19 @@ public enum GameMsgType {
 
     GameMsgType(int code) {
         this.code = code;
+        this.parser = null;
+    }
+
+    GameMsgType(int code, Parser<? extends MessageLite> parser) {
+        this.code = code;
+        this.parser = parser;
     }
 
     public int getCode() {
         return code;
+    }
+
+    public Parser<? extends MessageLite> getParser() {
+        return parser;
     }
 }

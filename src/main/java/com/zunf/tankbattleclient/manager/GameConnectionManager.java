@@ -78,6 +78,6 @@ public final class GameConnectionManager extends TcpClientManager {
         GameMsgType msgType = GameMsgType.of(msg.getType() & 0xFF);
         System.out.println("收到服务器消息: " + msgType + " 请求ID: " + msg.getRequestId());
         msgCallbackEventManager.triggerCallback(msgType, msg);
-        requestCallbackEventManager.triggerCallback(msg.getRequestId(), msgType, msg);
+        requestCallbackEventManager.triggerCallback(msg.getRequestId(), msg);
     }
 }

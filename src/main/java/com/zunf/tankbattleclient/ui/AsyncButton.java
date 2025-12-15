@@ -3,6 +3,8 @@ package com.zunf.tankbattleclient.ui;
 
 import com.zunf.tankbattleclient.exception.BusinessException;
 import com.zunf.tankbattleclient.exception.ErrorCode;
+import com.zunf.tankbattleclient.protobuf.game.auth.AuthProto;
+import com.zunf.tankbattleclient.util.ProtoBufUtil;
 import javafx.application.Platform;
 import javafx.beans.property.*;
 import javafx.scene.control.Button;
@@ -62,7 +64,7 @@ public class AsyncButton extends Button {
             return;
         }
         if (f == null) {
-            finishExceptionally(new NullPointerException("AsyncButton.action returned null future"));
+            finishExceptionally(new BusinessException(ErrorCode.UNKNOWN_ERROR));
             return;
         }
 
