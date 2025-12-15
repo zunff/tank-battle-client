@@ -4,8 +4,10 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.zunf.tankbattleclient.enums.GameMsgType;
 import com.zunf.tankbattleclient.manager.GameConnectionManager;
 import com.zunf.tankbattleclient.manager.ViewManager;
+import com.zunf.tankbattleclient.protobuf.CommonProto;
 import com.zunf.tankbattleclient.protobuf.game.auth.AuthProto;
 import com.zunf.tankbattleclient.service.AuthService;
+import com.zunf.tankbattleclient.ui.AsyncButton;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -16,6 +18,8 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.VBox;
 
 import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 public class LoginController extends ViewLifecycle {
 
@@ -35,6 +39,9 @@ public class LoginController extends ViewLifecycle {
     private Button loginButton;
 
     @FXML
+    private AsyncButton asyncLoginButton;
+
+    @FXML
     private Button registerButton;
 
     @FXML
@@ -42,6 +49,56 @@ public class LoginController extends ViewLifecycle {
 
     @FXML
     private VBox mainContainer;
+
+    @FXML
+    public void initialize() {
+        initLoginBtn();
+    }
+
+    private void initLoginBtn() {
+        asyncLoginButton.setText("登录");
+        asyncLoginButton.setLoadingText("登录中");
+
+        asyncLoginButton.setAction(() -> {
+            try {
+                String username = usernameField.getText();
+                String password = passwordField.getText();
+                // http 请求业务服务器获取token
+                return CompletableFuture.supplyAsync(() -> authService.login(username, password))
+                        .thenCompose(token ->
+                                gameConnectionManager.sendAndListenFuture(GameMsgType.LOGIN, AuthProto.LoginRequest.newBuilder().setToken(token).build())
+                                .thenApply(resp -> {
+                                    try {
+                                        AuthProto.LoginResponse lr = AuthProto.LoginResponse.parseFrom(resp.getPayloadBytes());
+                                        return new Object[]{resp, lr};
+                                    } catch (Exception e) {
+                                        throw new CompletionException(e);
+                                    }
+                                }));
+            } catch (Exception e) {
+                CompletableFuture<Object> f = new CompletableFuture<>();
+                f.completeExceptionally(e);
+                return f;
+            }
+        });
+
+        asyncLoginButton.setOnSuccess(obj -> {
+            Object[] arr = (Object[]) obj;
+            CommonProto.BaseResponse resp = (CommonProto.BaseResponse) arr[0];
+            AuthProto.LoginResponse lr = (AuthProto.LoginResponse) arr[1];
+
+            if (resp.getCode() == 0) {
+                messageLabel.setText("登录成功，playerId=" + lr.getPlayerId());
+            } else {
+                messageLabel.setText("登录失败：" + resp.getMessage());
+            }
+        });
+
+        asyncLoginButton.setOnError(ex -> {
+            messageLabel.setText("请求失败：" + ex.getMessage());
+        });
+
+    }
 
     @FXML
     protected void onLoginClick(ActionEvent event) {

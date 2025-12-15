@@ -5,7 +5,8 @@ import com.zunf.tankbattleclient.protobuf.CommonProto;
 import com.zunf.tankbattleclient.enums.GameMsgType;
 import com.zunf.tankbattleclient.model.message.InboundMessage;
 
-import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
@@ -45,18 +46,38 @@ public final class GameConnectionManager extends TcpClientManager {
         System.out.println("创建游戏连接管理器");
     }
 
-    public void send(GameMsgType type, MessageLite message) throws IOException {
+    public void send(GameMsgType type, MessageLite message) {
         byte[] body = message == null ? new byte[0] : message.toByteArray();
         int requestId  = requestIdAtomic.getAndIncrement();
         System.out.println("发送消息: " + type + " 请求ID: " + requestId);
         super.send((byte) type.getCode(), (byte) ConfigManager.getInstance().getProtocolVersion(), requestId, body);
     }
 
-    public void sendAndListen(GameMsgType type, MessageLite message, Consumer<CommonProto.BaseResponse> callback) throws IOException {
+    public void sendAndListen(GameMsgType type, MessageLite message, Consumer<CommonProto.BaseResponse> callback) {
         int requestId = requestIdAtomic.getAndIncrement();
         System.out.println("发送消息: " + type + " 监听ID: " + requestId);
         requestCallbackEventManager.listenRequest(requestId, callback);
         super.send((byte) type.getCode(), (byte) ConfigManager.getInstance().getProtocolVersion(), requestId, message.toByteArray());
+    }
+
+    public CompletableFuture<CommonProto.BaseResponse> sendAndListenFuture(GameMsgType type, MessageLite message) {
+        return sendAndListenFuture(type, message, 5000);
+    }
+
+    public CompletableFuture<CommonProto.BaseResponse> sendAndListenFuture(GameMsgType type, MessageLite message, long timeoutMs) {
+
+        int requestId = requestIdAtomic.getAndIncrement();
+
+        CompletableFuture<CommonProto.BaseResponse> f = new CompletableFuture<>();
+
+        requestCallbackEventManager.listenRequest(requestId, resp -> {
+            // 这里在 messageExecutor 线程里触发（因为 onMessage 在 messageExecutor）
+            f.complete(resp);
+        });
+
+        super.send((byte) type.getCode(), (byte) ConfigManager.getInstance().getProtocolVersion(), requestId, message.toByteArray());
+
+        return f.orTimeout(timeoutMs, TimeUnit.MILLISECONDS).whenComplete((r, e) -> requestCallbackEventManager.removeListener(requestId));
     }
 
     @Override

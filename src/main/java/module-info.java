@@ -8,6 +8,7 @@ module com.zunf.tankbattleclient {
     requires cn.hutool;
     requires com.google.protobuf;
 
+    opens com.zunf.tankbattleclient.ui to javafx.fxml;
     opens com.zunf.tankbattleclient to javafx.fxml;
     opens com.zunf.tankbattleclient.controller to javafx.fxml;
     opens com.zunf.tankbattleclient.model.qo to cn.hutool;

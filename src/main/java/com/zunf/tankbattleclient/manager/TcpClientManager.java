@@ -12,8 +12,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -33,6 +32,25 @@ public class TcpClientManager {
     private Socket socket;
     private Thread readerThread;
     private Thread writerThread;
+
+    int cores = Runtime.getRuntime().availableProcessors();
+    int poolSize = Math.max(2, cores);
+    ThreadFactory tf = r -> {
+        Thread t = new Thread(r);
+        t.setName("tcp-msg-dispatch-" + t.getId());
+        t.setDaemon(false); // 通常建议非daemon，配合优雅停机
+        t.setUncaughtExceptionHandler((th, ex) -> System.err.println("Uncaught in " + th.getName() + ": " + ex));
+        return t;
+    };
+    ThreadPoolExecutor messageExecutor = new ThreadPoolExecutor(
+            poolSize,
+            poolSize,
+            0L, TimeUnit.MILLISECONDS,
+            new ArrayBlockingQueue<>(10_000),
+            tf,
+            // 让提交线程自己跑，天然背压（常用）
+            new ThreadPoolExecutor.CallerRunsPolicy()
+    );
 
     public TcpClientManager(String host, int port) {
         this.host = host;
@@ -122,8 +140,8 @@ public class TcpClientManager {
                             break;
                         }
 
-                        // 回到 UI 线程处理
-                        Platform.runLater(() -> onMessage(msg));
+                        // 避免占用 UI 线程，放到线程池中执行
+                        messageExecutor.execute(() -> onMessage(msg));
                     }
                 }
             } catch (IOException e) {
