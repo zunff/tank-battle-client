@@ -54,12 +54,16 @@ public final class ConfigManager {
         }
     }
 
-    public String getServerHost() {
-        return getString("server.host", "localhost");
+    public String getTcpServerHost() {
+        return getString("tcp_server.host", "localhost");
     }
 
-    public int getServerPort() {
-        return getInt("server.port", 8888);
+    public int getTcpServerPort() {
+        return getInt("tcp_server.port", 8888);
+    }
+
+    public String getBackendServerUrl() {
+        return getString("backend.url", "http://localhost:8080");
     }
 
     public int getProtocolVersion() {

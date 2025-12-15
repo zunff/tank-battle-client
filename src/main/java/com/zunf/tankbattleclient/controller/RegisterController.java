@@ -14,10 +14,13 @@ import java.io.IOException;
 
 public class RegisterController {
 
-    private AuthService authService = new AuthService();
+    private final AuthService authService = AuthService.getInstance();
 
     @FXML
     private TextField usernameField;
+
+    @FXML
+    private TextField nicknameField;
 
     @FXML
     private PasswordField passwordField;
@@ -40,11 +43,12 @@ public class RegisterController {
     @FXML
     protected void onRegisterClick(ActionEvent event) {
         String username = usernameField.getText();
+        String nickname = nicknameField.getText();
         String password = passwordField.getText();
         String confirmPassword = confirmPasswordField.getText();
 
         // 简单验证
-        if (username.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
+        if (username.isEmpty() || nickname.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
             messageLabel.setText("请填写所有字段");
             messageLabel.setStyle("-fx-text-fill: red;");
             return;
@@ -57,7 +61,7 @@ public class RegisterController {
         }
 
         // 调用注册服务
-        boolean success = authService.register(username, password);
+        boolean success = authService.register(username, password, nickname, confirmPassword);
         if (success) {
             messageLabel.setText("注册成功！欢迎 " + username);
             messageLabel.setStyle("-fx-text-fill: green;");

@@ -19,7 +19,7 @@ import java.io.IOException;
 
 public class LoginController extends ViewLifecycle {
 
-    private final AuthService authService = new AuthService();
+    private final AuthService authService = AuthService.getInstance();
     private final GameConnectionManager gameConnectionManager = GameConnectionManager.getInstance();
 
     // 登录状态标记，用于防抖

@@ -23,8 +23,8 @@ public final class GameConnectionManager extends TcpClientManager {
         if (INSTANCE == null) {
             synchronized (GameConnectionManager.class) {
                 if (INSTANCE == null) {
-                    String host = ConfigManager.getInstance().getServerHost();
-                    int port = ConfigManager.getInstance().getServerPort();
+                    String host = ConfigManager.getInstance().getTcpServerHost();
+                    int port = ConfigManager.getInstance().getTcpServerPort();
                     INSTANCE = new GameConnectionManager(host, port);
                 }
             }

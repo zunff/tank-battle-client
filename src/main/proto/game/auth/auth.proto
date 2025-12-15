@@ -1,7 +1,6 @@
 syntax = "proto3";
-package game.auth;
+package auth;
 
-import "common.proto";
 option java_package = "com.zunf.tankbattleclient.protobuf.game.auth";
 option java_outer_classname = "AuthProto";
 
@@ -10,5 +9,5 @@ message LoginRequest {
 }
 
 message LoginResponse {
-  int64 player_id = 3; // 成功时返回
+  int64 player_id = 1;
 }

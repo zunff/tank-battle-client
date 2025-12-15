@@ -22,6 +22,7 @@
       <VBox alignment="CENTER" spacing="10.0">
          <children>
             <TextField fx:id="usernameField" promptText="用户名" />
+            <TextField fx:id="nicknameField" promptText="昵称" />
             <PasswordField fx:id="passwordField" promptText="密码" />
             <PasswordField fx:id="confirmPasswordField" promptText="确认密码" />
          </children>
