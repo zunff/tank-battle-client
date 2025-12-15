@@ -53,13 +53,6 @@ public final class GameConnectionManager extends TcpClientManager {
         super.send((byte) type.getCode(), (byte) ConfigManager.getInstance().getProtocolVersion(), requestId, body);
     }
 
-    public void sendAndListen(GameMsgType type, MessageLite message, Consumer<CommonProto.BaseResponse> callback) {
-        int requestId = requestIdAtomic.getAndIncrement();
-        System.out.println("发送消息: " + type + " 监听ID: " + requestId);
-        requestCallbackEventManager.listenRequest(requestId, callback);
-        super.send((byte) type.getCode(), (byte) ConfigManager.getInstance().getProtocolVersion(), requestId, message.toByteArray());
-    }
-
     public CompletableFuture<CommonProto.BaseResponse> sendAndListenFuture(GameMsgType type, MessageLite message) {
         return sendAndListenFuture(type, message, 5000);
     }

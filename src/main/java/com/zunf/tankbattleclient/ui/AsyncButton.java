@@ -1,6 +1,8 @@
 // AsyncButton.java
 package com.zunf.tankbattleclient.ui;
 
+import com.zunf.tankbattleclient.exception.BusinessException;
+import com.zunf.tankbattleclient.exception.ErrorCode;
 import javafx.application.Platform;
 import javafx.beans.property.*;
 import javafx.scene.control.Button;
@@ -26,7 +28,7 @@ public class AsyncButton extends Button {
     private final ObjectProperty<Supplier<CompletableFuture<?>>> action = new SimpleObjectProperty<>();
 
     private final ObjectProperty<Consumer<Object>> onSuccess = new SimpleObjectProperty<>();
-    private final ObjectProperty<Consumer<Throwable>> onError = new SimpleObjectProperty<>();
+    private final ObjectProperty<Consumer<BusinessException>> onError = new SimpleObjectProperty<>();
 
     private String normalText;
 
@@ -71,8 +73,8 @@ public class AsyncButton extends Button {
                     Consumer<Object> ok = onSuccess.get();
                     if (ok != null) ok.accept(val);
                 } else {
-                    Consumer<Throwable> bad = onError.get();
-                    if (bad != null) bad.accept(unwrap(err));
+                    Consumer<BusinessException> bad = onError.get();
+                    if (bad != null) bad.accept(wrap(err));
                 }
             } finally {
                 running.set(false);
@@ -84,8 +86,8 @@ public class AsyncButton extends Button {
     private void finishExceptionally(Throwable t) {
         Platform.runLater(() -> {
             try {
-                Consumer<Throwable> bad = onError.get();
-                if (bad != null) bad.accept(t);
+                Consumer<BusinessException> bad = onError.get();
+                if (bad != null) bad.accept(wrap(t));
             } finally {
                 running.set(false);
                 setText(normalText);
@@ -93,9 +95,14 @@ public class AsyncButton extends Button {
         });
     }
 
-    private static Throwable unwrap(Throwable err) {
-        if (err instanceof CompletionException ce && ce.getCause() != null) return ce.getCause();
-        return err;
+    private static BusinessException wrap(Throwable err) {
+        if (err instanceof CompletionException) {
+            err = err.getCause();
+        }
+        if (err instanceof BusinessException) {
+            return (BusinessException) err;
+        }
+        return new BusinessException(ErrorCode.UNKNOWN_ERROR);
     }
 
     // -------- properties --------
@@ -119,7 +126,7 @@ public class AsyncButton extends Button {
     public void setOnSuccess(Consumer<Object> c) { onSuccess.set(c); }
     public ObjectProperty<Consumer<Object>> onSuccessProperty() { return onSuccess; }
 
-    public Consumer<Throwable> getOnError() { return onError.get(); }
-    public void setOnError(Consumer<Throwable> c) { onError.set(c); }
-    public ObjectProperty<Consumer<Throwable>> onErrorProperty() { return onError; }
+    public Consumer<BusinessException> getOnError() { return onError.get(); }
+    public void setOnError(Consumer<BusinessException> c) { onError.set(c); }
+    public ObjectProperty<Consumer<BusinessException>> onErrorProperty() { return onError; }
 }

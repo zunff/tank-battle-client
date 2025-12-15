@@ -61,14 +61,20 @@ public class TcpClientManager {
         return socket != null && socket.isConnected() && running.get();
     }
 
-    public void connect() throws IOException {
-        socket = new Socket(host, port);
-        socket.setTcpNoDelay(true);
+    public void connect() {
+        InputStream in;
+        OutputStream out;
+        try {
+            socket = new Socket(host, port);
+            socket.setTcpNoDelay(true);
 
-        running.set(true);
+            running.set(true);
 
-        InputStream in = new BufferedInputStream(socket.getInputStream());
-        OutputStream out = new BufferedOutputStream(socket.getOutputStream());
+            in = new BufferedInputStream(socket.getInputStream());
+            out = new BufferedOutputStream(socket.getOutputStream());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 
         startWriter(out);
         startReader(in);
