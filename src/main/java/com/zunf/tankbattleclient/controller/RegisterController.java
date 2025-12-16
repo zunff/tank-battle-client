@@ -57,15 +57,47 @@ public class RegisterController {
             String nickname = nicknameField.getText();
             String password = passwordField.getText();
             String confirmPassword = confirmPasswordField.getText();
-            // 简单验证
-            if (username.isEmpty() || nickname.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
-                messageLabel.setText("请填写所有字段");
-                messageLabel.setStyle("-fx-text-fill: red;");
-                return CompletableFuture.completedFuture(null);
+            
+            // 清除之前的样式
+            clearFieldStyles();
+            StringBuilder errorMsg = new StringBuilder();
+            
+            // 输入验证
+            if (username.isEmpty()) {
+                usernameField.setStyle("-fx-border-color: red;");
+                errorMsg.append("用户名不能为空 ");
+            } else if (username.length() < 3 || username.length() > 20) {
+                usernameField.setStyle("-fx-border-color: red;");
+                errorMsg.append("用户名长度必须在3-20个字符之间 ");
             }
-
-            if (!password.equals(confirmPassword)) {
-                messageLabel.setText("两次输入的密码不一致");
+            
+            if (nickname.isEmpty()) {
+                nicknameField.setStyle("-fx-border-color: red;");
+                errorMsg.append("昵称不能为空 ");
+            }
+            
+            if (password.isEmpty()) {
+                passwordField.setStyle("-fx-border-color: red;");
+                errorMsg.append("密码不能为空 ");
+            } else if (password.length() < 6 || password.length() > 20) {
+                passwordField.setStyle("-fx-border-color: red;");
+                errorMsg.append("密码长度必须在6-20个字符之间 ");
+            }
+            
+            if (confirmPassword.isEmpty()) {
+                confirmPasswordField.setStyle("-fx-border-color: red;");
+                errorMsg.append("确认密码不能为空 ");
+            }
+            
+            // 检查密码是否匹配
+            if (!password.isEmpty() && !confirmPassword.isEmpty() && !password.equals(confirmPassword)) {
+                passwordField.setStyle("-fx-border-color: red;");
+                confirmPasswordField.setStyle("-fx-border-color: red;");
+                errorMsg.append("两次输入的密码不一致 ");
+            }
+            
+            if (errorMsg.length() > 0) {
+                messageLabel.setText(errorMsg.toString().trim());
                 messageLabel.setStyle("-fx-text-fill: red;");
                 return CompletableFuture.completedFuture(null);
             }
@@ -98,6 +130,13 @@ public class RegisterController {
             messageLabel.setText("注册失败：" + e.getCode());
             messageLabel.setStyle("-fx-text-fill: red;");
         });
+    }
+    
+    private void clearFieldStyles() {
+        usernameField.setStyle("");
+        nicknameField.setStyle("");
+        passwordField.setStyle("");
+        confirmPasswordField.setStyle("");
     }
 
     @FXML

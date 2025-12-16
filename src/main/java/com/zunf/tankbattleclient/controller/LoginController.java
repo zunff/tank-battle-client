@@ -53,6 +53,33 @@ public class LoginController extends ViewLifecycle {
         asyncLoginButton.setAction(() -> {
             String username = usernameField.getText();
             String password = passwordField.getText();
+            
+            // 输入验证
+            clearFieldStyles();
+            StringBuilder errorMsg = new StringBuilder();
+            
+            if (username.isEmpty()) {
+                usernameField.setStyle("-fx-border-color: red;");
+                errorMsg.append("用户名不能为空 ");
+            } else if (username.length() < 3 || username.length() > 20) {
+                usernameField.setStyle("-fx-border-color: red;");
+                errorMsg.append("用户名长度必须在3-20个字符之间 ");
+            }
+            
+            if (password.isEmpty()) {
+                passwordField.setStyle("-fx-border-color: red;");
+                errorMsg.append("密码不能为空 ");
+            } else if (password.length() < 6 || password.length() > 20) {
+                passwordField.setStyle("-fx-border-color: red;");
+                errorMsg.append("密码长度必须在6-20个字符之间 ");
+            }
+            
+            if (errorMsg.length() > 0) {
+                messageLabel.setText(errorMsg.toString().trim());
+                messageLabel.setStyle("-fx-text-fill: red;");
+                return CompletableFuture.completedFuture(null);
+            }
+            
             // http 请求业务服务器获取token
             return CompletableFuture.supplyAsync(() -> authService.login(username, password))
                     .thenCompose(token -> {
@@ -85,6 +112,11 @@ public class LoginController extends ViewLifecycle {
             messageLabel.setText("登录失败：" + ex.getCode());
         });
 
+    }
+    
+    private void clearFieldStyles() {
+        usernameField.setStyle("");
+        passwordField.setStyle("");
     }
 
     @FXML
