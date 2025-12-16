@@ -1,0 +1,77 @@
+/* 大厅页面样式 */
+.root {
+    -fx-background-color: #2c3e50;
+}
+
+#mainContainer {
+    -fx-background-color: #34495e;
+}
+
+.label {
+    -fx-text-fill: #ecf0f1;
+}
+
+#welcomeLabel {
+    -fx-text-fill: #f39c12;
+}
+
+.text-area {
+    -fx-background-color: #ecf0f1;
+    -fx-border-color: #bdc3c7;
+    -fx-border-width: 1px;
+    -fx-border-radius: 5px;
+    -fx-padding: 8px;
+}
+
+.list-view {
+    -fx-background-color: #ecf0f1;
+    -fx-border-color: #bdc3c7;
+    -fx-border-width: 1px;
+    -fx-border-radius: 5px;
+}
+
+.list-view .list-cell {
+    -fx-background-color: #ecf0f1;
+    -fx-text-fill: #2c3e50;
+}
+
+.list-view .list-cell:selected {
+    -fx-background-color: #3498db;
+    -fx-text-fill: white;
+}
+
+.text-field {
+    -fx-background-color: #ecf0f1;
+    -fx-border-color: #bdc3c7;
+    -fx-border-width: 1px;
+    -fx-border-radius: 5px;
+    -fx-padding: 8px;
+}
+
+.button {
+    -fx-background-color: #f39c12;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 5px;
+    -fx-cursor: hand;
+}
+
+.button:hover {
+    -fx-background-color: #e67e22;
+}
+
+.button:pressed {
+    -fx-background-color: #d35400;
+}
+
+#logoutButton {
+    -fx-background-color: #e74c3c;
+}
+
+#logoutButton:hover {
+    -fx-background-color: #c0392b;
+}
+
+#logoutButton:pressed {
+    -fx-background-color: #a93226;
+}

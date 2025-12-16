@@ -4,6 +4,7 @@ import com.zunf.tankbattleclient.enums.GameMsgType;
 import com.zunf.tankbattleclient.exception.BusinessException;
 import com.zunf.tankbattleclient.exception.ErrorCode;
 import com.zunf.tankbattleclient.manager.GameConnectionManager;
+import com.zunf.tankbattleclient.manager.UserInfoManager;
 import com.zunf.tankbattleclient.manager.ViewManager;
 import com.zunf.tankbattleclient.protobuf.CommonProto;
 import com.zunf.tankbattleclient.protobuf.game.auth.AuthProto;
@@ -102,6 +103,14 @@ public class LoginController extends ViewLifecycle {
 
             if (resp.getCode() == 0) {
                 messageLabel.setText("登录成功，" + lr.getPlayerName());
+                // 存储用户信息到缓存
+                UserInfoManager.getInstance().setUserinfo(
+                    usernameField.getText(), 
+                    lr.getPlayerName(),
+                    lr.getPlayerId()
+                );
+                // 跳转到大厅界面
+                ViewManager.getInstance().show("lobby-view.fxml", "游戏大厅", 800, 600);
             } else {
                 messageLabel.setText("登录失败：" + resp.getCode());
             }
@@ -121,13 +130,7 @@ public class LoginController extends ViewLifecycle {
 
     @FXML
     protected void onRegisterClick(ActionEvent event) {
-        try {
-            // 跳转到注册页面
-            ViewManager.getInstance().show("register-view.fxml", "注册", 350, 400);
-        } catch (IOException e) {
-            e.printStackTrace();
-            messageLabel.setText("无法打开注册页面");
-            messageLabel.setStyle("-fx-text-fill: red;");
-        }
+        // 跳转到注册页面
+        ViewManager.getInstance().show("register-view.fxml", "注册", 350, 400);
     }
 }

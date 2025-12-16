@@ -1,14 +1,11 @@
 package com.zunf.tankbattleclient.controller;
 
-import cn.hutool.core.util.StrUtil;
-import com.zunf.tankbattleclient.enums.GameMsgType;
-import com.zunf.tankbattleclient.manager.GameConnectionManager;
+
 import com.zunf.tankbattleclient.manager.ViewManager;
 import com.zunf.tankbattleclient.protobuf.CommonProto;
 import com.zunf.tankbattleclient.protobuf.game.auth.AuthProto;
 import com.zunf.tankbattleclient.service.AuthService;
 import com.zunf.tankbattleclient.ui.AsyncButton;
-import com.zunf.tankbattleclient.util.ProtoBufUtil;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -23,8 +20,6 @@ import java.util.concurrent.CompletableFuture;
 public class RegisterController {
 
     private final AuthService authService = AuthService.getInstance();
-
-    private final GameConnectionManager gameConnectionManager = GameConnectionManager.getInstance();
 
     @FXML
     private TextField usernameField;
@@ -102,18 +97,7 @@ public class RegisterController {
                 return CompletableFuture.completedFuture(null);
             }
 
-            return CompletableFuture.supplyAsync(() -> authService.register(username, password, nickname, confirmPassword))
-                    .thenCompose(token -> {
-                        // 校验账号密码成功后建立tcp连接
-                        if (!gameConnectionManager.isConnected()) {
-                            gameConnectionManager.connect();
-                        }
-                        return gameConnectionManager.sendAndListenFuture(GameMsgType.LOGIN, AuthProto.LoginRequest.newBuilder().setToken(token).build());
-                    })
-                    .thenApply(resp -> {
-                        AuthProto.LoginResponse lr = ProtoBufUtil.parseRespBody(resp, AuthProto.LoginResponse.class);
-                        return new Object[]{resp, lr};
-                    });
+            return CompletableFuture.supplyAsync(() -> authService.register(username, password, nickname, confirmPassword));
         });
         registerButton.setOnSuccess(obj -> {
             Object[] arr = (Object[]) obj;
@@ -122,6 +106,7 @@ public class RegisterController {
 
             if (resp.getCode() == 0) {
                 messageLabel.setText("注册成功，=" + lr.getPlayerName());
+                ViewManager.getInstance().show("login-view.fxml", "登录", 350, 400);
             } else {
                 messageLabel.setText("注册失败：" + resp.getCode());
             }
@@ -141,13 +126,6 @@ public class RegisterController {
 
     @FXML
     protected void onBackToLoginClick(ActionEvent event) {
-        try {
-            // 返回到登录页面
-            ViewManager.getInstance().show("login-view.fxml", "登录", 350, 400);
-        } catch (IOException e) {
-            e.printStackTrace();
-            messageLabel.setText("无法返回登录页面");
-            messageLabel.setStyle("-fx-text-fill: red;");
-        }
+        ViewManager.getInstance().show("login-view.fxml", "登录", 350, 400);
     }
 }

@@ -2,6 +2,8 @@ package com.zunf.tankbattleclient.manager;
 
 import com.zunf.tankbattleclient.TankBattleApplication;
 import com.zunf.tankbattleclient.controller.ViewLifecycle;
+import com.zunf.tankbattleclient.exception.BusinessException;
+import com.zunf.tankbattleclient.exception.ErrorCode;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -42,14 +44,19 @@ public class ViewManager {
         });
     }
 
-    public void show(String fxml, String title, double w, double h) throws IOException {
+    public void show(String fxml, String title, double w, double h) {
         // 切换前：通知旧页面隐藏（释放资源）
         if (currentLifecycle != null) {
             currentLifecycle.onHide();
         }
 
         FXMLLoader loader = new FXMLLoader(TankBattleApplication.class.getResource("fxml/" + fxml));
-        Parent root = loader.load();
+        Parent root = null;
+        try {
+            root = loader.load();
+        } catch (IOException e) {
+            throw new BusinessException(ErrorCode.UNKNOWN_ERROR, "无法加载 FXML 文件：" + fxml);
+        }
 
         Object controller = loader.getController();
         currentLifecycle = (controller instanceof ViewLifecycle vl) ? vl : null;

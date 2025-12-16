@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane fx:id="mainContainer" prefHeight="600.0" prefWidth="800.0" stylesheets="@../css/global.css,@../css/lobby.css" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.zunf.tankbattleclient.controller.LobbyController">
+   <top>
+      <HBox alignment="CENTER_RIGHT" prefHeight="50.0" spacing="10.0" BorderPane.alignment="CENTER">
+         <children>
+            <Label fx:id="welcomeLabel" text="欢迎, ">
+               <font>
+                  <Font name="System Bold" size="14.0" />
+               </font>
+            </Label>
+            <Button fx:id="logoutButton" mnemonicParsing="false" onAction="#onLogoutClick" text="退出登录" />
+         </children>
+         <padding>
+            <Insets right="20.0" />
+         </padding>
+      </HBox>
+   </top>
+   <left>
+      <VBox prefWidth="400.0" spacing="10.0" BorderPane.alignment="CENTER">
+         <children>
+            <Label text="公共聊天">
+               <font>
+                  <Font name="System Bold" size="16.0" />
+               </font>
+            </Label>
+            <TextArea fx:id="chatArea" editable="false" prefHeight="400.0" wrapText="true" />
+            <HBox spacing="10.0">
+               <children>
+                  <TextField fx:id="messageField" prefHeight="25.0" prefWidth="300.0" promptText="输入消息..." />
+                  <Button fx:id="sendButton" mnemonicParsing="false" onAction="#onSendClick" text="发送" />
+               </children>
+            </HBox>
+         </children>
+         <padding>
+            <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+         </padding>
+      </VBox>
+   </left>
+   <right>
+      <VBox prefWidth="350.0" spacing="10.0" BorderPane.alignment="CENTER">
+         <children>
+            <Label text="房间列表">
+               <font>
+                  <Font name="System Bold" size="16.0" />
+               </font>
+            </Label>
+            <ListView fx:id="roomListView" prefHeight="450.0" />
+            <HBox alignment="CENTER" spacing="20.0">
+               <children>
+                  <Button fx:id="createRoomButton" mnemonicParsing="false" onAction="#onCreateRoomClick" text="创建房间" />
+                  <Button fx:id="joinRoomButton" mnemonicParsing="false" onAction="#onJoinRoomClick" text="加入房间" />
+               </children>
+            </HBox>
+         </children>
+         <padding>
+            <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+         </padding>
+      </VBox>
+   </right>
+</BorderPane>
