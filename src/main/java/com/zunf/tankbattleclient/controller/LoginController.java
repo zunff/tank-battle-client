@@ -50,9 +50,6 @@ public class LoginController extends ViewLifecycle {
     }
 
     private void initLoginBtn() {
-        asyncLoginButton.setText("登录");
-        asyncLoginButton.setLoadingText("登录中");
-
         asyncLoginButton.setAction(() -> {
             String username = usernameField.getText();
             String password = passwordField.getText();
@@ -94,7 +91,7 @@ public class LoginController extends ViewLifecycle {
     protected void onRegisterClick(ActionEvent event) {
         try {
             // 跳转到注册页面
-            ViewManager.getInstance().show("register-view.fxml", "注册", 300, 400);
+            ViewManager.getInstance().show("register-view.fxml", "注册", 350, 400);
         } catch (IOException e) {
             e.printStackTrace();
             messageLabel.setText("无法打开注册页面");

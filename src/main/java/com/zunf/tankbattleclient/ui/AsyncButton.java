@@ -72,8 +72,10 @@ public class AsyncButton extends Button {
         f.whenComplete((val, err) -> Platform.runLater(() -> {
             try {
                 if (err == null) {
-                    Consumer<Object> ok = onSuccess.get();
-                    if (ok != null) ok.accept(val);
+                    if (val != null) {
+                        Consumer<Object> ok = onSuccess.get();
+                        if (ok != null) ok.accept(val);
+                    }
                 } else {
                     Consumer<BusinessException> bad = onError.get();
                     if (bad != null) bad.accept(wrap(err));

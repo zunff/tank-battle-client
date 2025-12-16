@@ -62,4 +62,12 @@ public enum ErrorCode {
         return message;
     }
 
+    public static ErrorCode of(int code) {
+        for (ErrorCode value : values()) {
+            if (value.code == code) {
+                return value;
+            }
+        }
+        return UNKNOWN_ERROR;
+    }
 }

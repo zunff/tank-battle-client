@@ -43,13 +43,14 @@ public class AuthService {
             throw new BusinessException(ErrorCode.INTERNAL_ERROR);
         }
         JSONObject jsonResponse = JSONUtil.parseObj(response.body());
-        if (jsonResponse.getInt("code", ErrorCode.UNKNOWN_ERROR.getCode()) != 0) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        Integer code = jsonResponse.getInt("code", ErrorCode.UNKNOWN_ERROR.getCode());
+        if (code != 0) {
+            throw new BusinessException(ErrorCode.of(code));
         }
         return jsonResponse.getStr("data");
     }
 
-    public boolean register(String username, String password, String nickname, String confirmPassword) {
+    public String register(String username, String password, String nickname, String confirmPassword) {
         String backendUrl = configManager.getBackendServerUrl();
 
         // 构造请求参数
@@ -63,6 +64,10 @@ public class AuthService {
             throw new BusinessException(ErrorCode.INTERNAL_ERROR);
         }
         JSONObject jsonResponse = JSONUtil.parseObj(response.body());
-        return jsonResponse.getInt("code", ErrorCode.UNKNOWN_ERROR.getCode()) == 0;
+        Integer code = jsonResponse.getInt("code", ErrorCode.UNKNOWN_ERROR.getCode());
+        if (code != 0) {
+            throw new BusinessException(ErrorCode.of(code));
+        }
+        return jsonResponse.getStr("data");
     }
 }

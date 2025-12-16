@@ -27,7 +27,7 @@
     -fx-padding: 8px;
 }
 
-#loginButton, #registerButton {
+#asyncLoginButton, #registerButton {
     -fx-background-color: #f39c12;
     -fx-text-fill: white;
     -fx-font-weight: bold;
@@ -35,10 +35,10 @@
     -fx-cursor: hand;
 }
 
-#loginButton:hover, #registerButton:hover {
+#asyncLoginButton:hover, #registerButton:hover {
     -fx-background-color: #e67e22;
 }
 
-#loginButton:pressed, #registerButton:pressed {
+#asyncLoginButton:pressed, #registerButton:pressed {
     -fx-background-color: #d35400;
 }
