@@ -101,7 +101,7 @@ public class LoginController extends ViewLifecycle {
             AuthProto.LoginResponse lr = (AuthProto.LoginResponse) arr[1];
 
             if (resp.getCode() == 0) {
-                messageLabel.setText("登录成功，playerId=" + lr.getPlayerId());
+                messageLabel.setText("登录成功，" + lr.getPlayerName());
             } else {
                 messageLabel.setText("登录失败：" + resp.getCode());
             }

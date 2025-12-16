@@ -121,7 +121,7 @@ public class RegisterController {
             AuthProto.LoginResponse lr = (AuthProto.LoginResponse) arr[1];
 
             if (resp.getCode() == 0) {
-                messageLabel.setText("注册成功，playerId=" + lr.getPlayerId());
+                messageLabel.setText("注册成功，=" + lr.getPlayerName());
             } else {
                 messageLabel.setText("注册失败：" + resp.getCode());
             }

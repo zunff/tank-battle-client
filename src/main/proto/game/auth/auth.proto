@@ -10,4 +10,6 @@ message LoginRequest {
 
 message LoginResponse {
   int64 player_id = 1;
+  string player_name = 2;
+  string player_account = 3;
 }
