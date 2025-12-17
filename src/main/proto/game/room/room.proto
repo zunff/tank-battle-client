@@ -1,0 +1,70 @@
+syntax = "proto3";
+package game.room;
+
+option java_package = "com.zunf.tankbattleclient.protobuf.game.room";
+option java_outer_classname = "GameRoomProto";
+
+enum RoomStatus {
+  WAITING = 0;
+  PLAYING = 1;
+}
+
+message CreateGameRoomRequest {
+  string name = 1;
+  int32 maxPlayers = 2;
+  int64 playerId = 3;
+}
+
+message CreateGameRoomResponse {
+  int64 roomId = 1;
+}
+
+// 获取房间列表 begin
+message PageRequest {
+  int32 pageNum = 1;
+  int32 pageSize = 2;
+}
+
+message PageResponse {
+  repeated GameRoomData data = 1;
+  int32 total = 2;
+}
+
+message GameRoomData {
+  int64 id = 1;
+  string name = 2;
+  int32 maxPlayers = 3;
+  RoomStatus status = 5;
+}
+// 获取房间列表  end
+
+// 加入房间  begin
+message JoinGameRoomRequest {
+  int64 roomId = 1;
+  int64 playerId = 2;
+}
+
+message GameRoomDetail {
+  int64 id = 1;
+  string name = 2;
+  int32 maxPlayers = 3;
+  int64 creatorId = 4;
+  RoomStatus status = 5;
+  repeated GameRoomPlayerData players = 6;
+}
+
+message GameRoomPlayerData {
+  int64 playerId = 1;
+  string nickName = 2;
+}
+// 离开房间  end
+
+message LeaveGameRoomRequest {
+  int64 roomId = 1;
+  int64 playerId = 2;
+}
+
+message StartGameRoomRequest {
+  int64 roomId = 1;
+  int64 playerId = 2;
+}

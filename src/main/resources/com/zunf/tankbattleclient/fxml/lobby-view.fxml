@@ -10,6 +10,7 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
+<?import com.zunf.tankbattleclient.ui.AsyncButton?>
 
 <BorderPane fx:id="mainContainer" prefHeight="600.0" prefWidth="800.0" stylesheets="@../css/global.css,@../css/lobby.css" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.zunf.tankbattleclient.controller.LobbyController">
    <top>
@@ -59,8 +60,8 @@
             <ListView fx:id="roomListView" prefHeight="450.0" />
             <HBox alignment="CENTER" spacing="20.0">
                <children>
-                  <Button fx:id="createRoomButton" mnemonicParsing="false" onAction="#onCreateRoomClick" text="创建房间" />
-                  <Button fx:id="joinRoomButton" mnemonicParsing="false" onAction="#onJoinRoomClick" text="加入房间" />
+                  <AsyncButton fx:id="createRoomButton" text="创建房间" loadingText="创建中"/>
+                  <AsyncButton fx:id="joinRoomButton" text="加入房间" loadingText="加入中"/>
                </children>
             </HBox>
          </children>

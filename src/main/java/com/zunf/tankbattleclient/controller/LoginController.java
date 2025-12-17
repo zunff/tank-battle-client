@@ -101,7 +101,7 @@ public class LoginController extends ViewLifecycle {
             CommonProto.BaseResponse resp = (CommonProto.BaseResponse) arr[0];
             AuthProto.LoginResponse lr = (AuthProto.LoginResponse) arr[1];
 
-            if (resp.getCode() == 0) {
+            if (resp != null && resp.getCode() == 0) {
                 messageLabel.setText("登录成功，" + lr.getPlayerName());
                 // 存储用户信息到缓存
                 UserInfoManager.getInstance().setUserinfo(
@@ -112,7 +112,7 @@ public class LoginController extends ViewLifecycle {
                 // 跳转到大厅界面
                 ViewManager.getInstance().show("lobby-view.fxml", "游戏大厅", 800, 600);
             } else {
-                messageLabel.setText("登录失败：" + resp.getCode());
+                messageLabel.setText("登录失败：" + (resp == null ? "未知错误" : resp.getCode()));
             }
         });
 

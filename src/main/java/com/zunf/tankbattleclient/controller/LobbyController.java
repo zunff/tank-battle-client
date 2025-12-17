@@ -1,11 +1,22 @@
 package com.zunf.tankbattleclient.controller;
 
+import com.zunf.tankbattleclient.enums.GameMsgType;
+import com.zunf.tankbattleclient.manager.GameConnectionManager;
 import com.zunf.tankbattleclient.manager.UserInfoManager;
 import com.zunf.tankbattleclient.manager.ViewManager;
+import com.zunf.tankbattleclient.protobuf.game.auth.AuthProto;
+import com.zunf.tankbattleclient.protobuf.game.room.GameRoomProto;
+import com.zunf.tankbattleclient.ui.AsyncButton;
+import com.zunf.tankbattleclient.util.ProtoBufUtil;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
+import javafx.scene.Node;
 import javafx.scene.control.*;
-import java.io.IOException;
+import javafx.scene.layout.GridPane;
+
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 public class LobbyController extends ViewLifecycle {
 
@@ -25,13 +36,15 @@ public class LobbyController extends ViewLifecycle {
     private Button sendButton;
 
     @FXML
-    private Button createRoomButton;
+    private AsyncButton createRoomButton;
 
     @FXML
-    private Button joinRoomButton;
+    private AsyncButton joinRoomButton;
 
     @FXML
     private Button logoutButton;
+
+    private GameConnectionManager gameConnectionManager = GameConnectionManager.getInstance();
 
     @FXML
     public void initialize() {
@@ -40,10 +53,117 @@ public class LobbyController extends ViewLifecycle {
         if (username != null && !username.isEmpty()) {
             welcomeLabel.setText("欢迎, " + username);
         }
-        
+        // 初始化按钮实践
+        initCreateRoomButton();
+        initJoinRoomButton();
+
         // 初始化假数据
         initializeChat();
         initializeRooms();
+    }
+
+    private void initCreateRoomButton() {
+        createRoomButton.setAction(() -> {
+            // 创建房间弹窗
+            Dialog<RoomCreationData> dialog = new Dialog<>();
+            dialog.setTitle("创建房间");
+
+            // 设置确认和取消按钮
+            ButtonType createButtonType = new ButtonType("创建", ButtonBar.ButtonData.OK_DONE);
+            dialog.getDialogPane().getButtonTypes().addAll(createButtonType, ButtonType.CANCEL);
+
+            // 创建表单
+            GridPane grid = new GridPane();
+            grid.setHgap(10);
+            grid.setVgap(10);
+            grid.setPadding(new Insets(20, 150, 10, 10));
+
+            // 房间名称输入框
+            TextField roomNameField = new TextField();
+            roomNameField.setPromptText("输入房间名称");
+
+            // 最大人数选择框
+            ComboBox<Integer> maxPlayersComboBox = new ComboBox<>();
+            maxPlayersComboBox.getItems().addAll(2, 5, 10);
+            maxPlayersComboBox.setValue(2); // 默认值
+
+            // 添加表单元素
+            grid.add(new Label("房间名称:"), 0, 0);
+            grid.add(roomNameField, 1, 0);
+            grid.add(new Label("最大人数:"), 0, 1);
+            grid.add(maxPlayersComboBox, 1, 1);
+
+            // 禁用确认按钮，直到房间名称不为空
+            Node createButton = dialog.getDialogPane().lookupButton(createButtonType);
+            createButton.setDisable(true);
+
+            // 监听房间名称输入，启用/禁用确认按钮
+            roomNameField.textProperty().addListener((observable, oldValue, newValue) -> {
+                createButton.setDisable(newValue.trim().isEmpty());
+            });
+
+            dialog.getDialogPane().setContent(grid);
+
+            // 转换结果
+            dialog.setResultConverter(dialogButton -> {
+                if (dialogButton == createButtonType) {
+                    return new RoomCreationData(roomNameField.getText().trim(), maxPlayersComboBox.getValue());
+                }
+                return null;
+            });
+
+            // 显示弹窗并等待用户响应
+            Optional<RoomCreationData> result = dialog.showAndWait();
+
+            // 处理用户选择
+            return result.map(data -> {
+                // 这里可以添加实际的创建房间逻辑
+                System.out.println("创建房间: " + data.roomName + ", 最大人数: " + data.maxPlayers);
+                return gameConnectionManager.sendAndListenFuture(GameMsgType.CREATE_ROOM, GameRoomProto.CreateGameRoomRequest.newBuilder()
+                        .setName(data.roomName)
+                        .setMaxPlayers(data.maxPlayers)
+                        .setPlayerId(UserInfoManager.getInstance().getPlayerId())
+                        .build())
+                        .thenApply(resp -> {
+                            GameRoomProto.CreateGameRoomResponse r = ProtoBufUtil.parseRespBody(resp, GameRoomProto.CreateGameRoomResponse.parser());
+                            return new Object[]{resp, r};
+                        });
+            }).orElseGet(() -> CompletableFuture.completedFuture(null));
+        });
+        createRoomButton.setOnSuccess(obj -> {
+            // 创建房间成功
+            showAlert("创建房间成功", "");
+        });
+        createRoomButton.setOnError(ex -> {
+            // 创建房间失败
+            showAlert("创建房间失败", "请检查网络连接或稍后再试");
+        });
+    }
+
+    // 房间创建数据类
+    private static class RoomCreationData {
+        private final String roomName;
+        private final int maxPlayers;
+
+        public RoomCreationData(String roomName, int maxPlayers) {
+            this.roomName = roomName;
+            this.maxPlayers = maxPlayers;
+        }
+    }
+
+    private void initJoinRoomButton() {
+        joinRoomButton.setAction(() -> {
+            // 加入房间逻辑
+            return CompletableFuture.completedFuture(null);
+        });
+        joinRoomButton.setOnSuccess(obj -> {
+            // 加入房间成功
+            showAlert("加入房间成功", "欢迎来到游戏房间");
+        });
+        joinRoomButton.setOnError(ex -> {
+            // 加入房间失败
+            showAlert("加入房间失败", "请检查房间ID或网络连接");
+        });
     }
 
     private void initializeChat() {
@@ -80,21 +200,6 @@ public class LobbyController extends ViewLifecycle {
             messageField.clear();
             // 自动滚动到底部
             chatArea.positionCaret(chatArea.getText().length());
-        }
-    }
-
-    @FXML
-    protected void onCreateRoomClick(ActionEvent event) {
-        showAlert("提示", "创建房间功能将在后续版本中实现");
-    }
-
-    @FXML
-    protected void onJoinRoomClick(ActionEvent event) {
-        String selectedRoom = roomListView.getSelectionModel().getSelectedItem();
-        if (selectedRoom != null) {
-            showAlert("提示", "加入房间功能将在后续版本中实现\n选中的房间: " + selectedRoom);
-        } else {
-            showAlert("提示", "请先选择一个房间");
         }
     }
 

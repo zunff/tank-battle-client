@@ -2,7 +2,6 @@ package com.zunf.tankbattleclient.enums;
 
 import com.google.protobuf.MessageLite;
 import com.google.protobuf.Parser;
-import com.zunf.tankbattleclient.protobuf.game.auth.AuthProto;
 
 import java.util.Arrays;
 
@@ -10,10 +9,7 @@ public enum GameMsgType {
     ERROR(0),
     LOGIN(1),
     LOGOUT(2),
-    CHAT(3),
-    MOVE(4),
-    ATTACK(5),
-    // ... 其他游戏相关类型
+    CREATE_ROOM(3),
 
     UNKNOWN(255);
 
