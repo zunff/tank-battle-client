@@ -1,0 +1,39 @@
+/* 房间页面样式 */
+/* 通用样式已在 global.css 中定义 */
+
+#roomNameLabel {
+    -fx-text-fill: #f39c12;
+}
+
+#roomStatusLabel, #playerCountLabel {
+    -fx-text-fill: #bdc3c7;
+}
+
+.button {
+    -fx-pref-width: 150px;
+}
+
+#leaveRoomButton {
+    -fx-background-color: #e74c3c;
+}
+
+#leaveRoomButton:hover {
+    -fx-background-color: #c0392b;
+}
+
+#leaveRoomButton:pressed {
+    -fx-background-color: #a93226;
+}
+
+#startGameButton {
+    -fx-background-color: #27ae60;
+}
+
+#startGameButton:hover {
+    -fx-background-color: #229954;
+}
+
+#startGameButton:pressed {
+    -fx-background-color: #1e8449;
+}
+

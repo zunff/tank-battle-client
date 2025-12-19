@@ -6,12 +6,21 @@ import com.google.protobuf.Parser;
 import java.util.Arrays;
 
 public enum GameMsgType {
-    ERROR(0),
-    LOGIN(1),
-    LOGOUT(2),
-    CREATE_ROOM(3),
+    // client -> server
+    PING(1),
+    LOGIN(2),
+    LOGOUT(3),
+    CREATE_ROOM(4),
+    PAGE_ROOM(5),
+    JOIN_ROOM(6),
+    LEAVE_ROOM(7),
 
-    UNKNOWN(255);
+    // server -> client
+    PONG(1001),
+
+    // common
+    ERROR(0),
+    UNKNOWN(2048);
 
     private final int code;
     private Parser<? extends MessageLite> parser;

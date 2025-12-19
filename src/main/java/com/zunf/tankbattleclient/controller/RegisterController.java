@@ -1,6 +1,7 @@
 package com.zunf.tankbattleclient.controller;
 
 
+import com.zunf.tankbattleclient.enums.ViewEnum;
 import com.zunf.tankbattleclient.manager.ViewManager;
 import com.zunf.tankbattleclient.protobuf.CommonProto;
 import com.zunf.tankbattleclient.protobuf.game.auth.AuthProto;
@@ -14,7 +15,6 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.VBox;
 
-import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 
 public class RegisterController {
@@ -106,7 +106,7 @@ public class RegisterController {
 
             if (resp.getCode() == 0) {
                 messageLabel.setText("注册成功，=" + lr.getPlayerName());
-                ViewManager.getInstance().show("login-view.fxml", "登录", 350, 400);
+                ViewManager.getInstance().show(ViewEnum.LOGIN);
             } else {
                 messageLabel.setText("注册失败：" + resp.getCode());
             }
@@ -126,6 +126,6 @@ public class RegisterController {
 
     @FXML
     protected void onBackToLoginClick(ActionEvent event) {
-        ViewManager.getInstance().show("login-view.fxml", "登录", 350, 400);
+        ViewManager.getInstance().show(ViewEnum.LOGIN);
     }
 }

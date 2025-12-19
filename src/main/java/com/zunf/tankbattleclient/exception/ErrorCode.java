@@ -22,6 +22,7 @@ public enum ErrorCode {
     BAD_PROTOCOL_VERSION(2003, "Bad protocol version"),
     UNSUPPORTED_COMMAND(2004, "Unsupported command"),
     PAYLOAD_TOO_LARGE(2005, "Payload too large"),
+    PROTO_PARSE_ERROR(2006, "Proto parse error"),
 
     // 3xxx: auth / permission
     UNAUTHORIZED(3001, "Unauthorized"),
@@ -36,9 +37,17 @@ public enum ErrorCode {
     // 5xxx: retryable / transient
     TIMEOUT(5001, "Timeout"),
     RATE_LIMITED(5002, "Rate limited"),
-    SERVICE_UNAVAILABLE(5003, "Service unavailable");
+    SERVICE_UNAVAILABLE(5003, "Service unavailable"),
 
+    // 6xxx: business error
+    GAME_ROOM_NOT_FOUND(6001, "Room not found"),
+    GAME_ROOM_FULL(6002, "Room full"),
+    GAME_ROOM_PLAYER_EXIST(6003, "Player exist"),
+    GAME_ROOM_PLAYER_NOT_EXIST(6004, "Player not exist"),
+    GAME_ROOM_NOT_CREATOR(6005, "Not creator"),
+    GAME_ROOM_ALREADY_START(6006, "Already start"),
 
+    ;
     /**
      * 状态码
      */

@@ -1,8 +1,7 @@
 package com.zunf.tankbattleclient.controller;
 
 import com.zunf.tankbattleclient.enums.GameMsgType;
-import com.zunf.tankbattleclient.exception.BusinessException;
-import com.zunf.tankbattleclient.exception.ErrorCode;
+import com.zunf.tankbattleclient.enums.ViewEnum;
 import com.zunf.tankbattleclient.manager.GameConnectionManager;
 import com.zunf.tankbattleclient.manager.UserInfoManager;
 import com.zunf.tankbattleclient.manager.ViewManager;
@@ -19,7 +18,6 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.VBox;
 
-import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 
 public class LoginController extends ViewLifecycle {
@@ -110,7 +108,7 @@ public class LoginController extends ViewLifecycle {
                     lr.getPlayerId()
                 );
                 // 跳转到大厅界面
-                ViewManager.getInstance().show("lobby-view.fxml", "游戏大厅", 800, 600);
+                ViewManager.getInstance().show(ViewEnum.LOBBY);
             } else {
                 messageLabel.setText("登录失败：" + (resp == null ? "未知错误" : resp.getCode()));
             }
@@ -131,6 +129,6 @@ public class LoginController extends ViewLifecycle {
     @FXML
     protected void onRegisterClick(ActionEvent event) {
         // 跳转到注册页面
-        ViewManager.getInstance().show("register-view.fxml", "注册", 350, 400);
+        ViewManager.getInstance().show(ViewEnum.REGISTER);
     }
 }

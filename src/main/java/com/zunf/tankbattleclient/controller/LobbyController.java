@@ -1,13 +1,18 @@
 package com.zunf.tankbattleclient.controller;
 
 import com.zunf.tankbattleclient.enums.GameMsgType;
+import com.zunf.tankbattleclient.enums.ViewEnum;
+import com.zunf.tankbattleclient.exception.BusinessException;
+import com.zunf.tankbattleclient.exception.ErrorCode;
 import com.zunf.tankbattleclient.manager.GameConnectionManager;
 import com.zunf.tankbattleclient.manager.UserInfoManager;
 import com.zunf.tankbattleclient.manager.ViewManager;
-import com.zunf.tankbattleclient.protobuf.game.auth.AuthProto;
+import com.zunf.tankbattleclient.protobuf.CommonProto;
 import com.zunf.tankbattleclient.protobuf.game.room.GameRoomProto;
 import com.zunf.tankbattleclient.ui.AsyncButton;
+import com.zunf.tankbattleclient.util.MessageUtil;
 import com.zunf.tankbattleclient.util.ProtoBufUtil;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
@@ -15,8 +20,13 @@ import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class LobbyController extends ViewLifecycle {
 
@@ -30,7 +40,7 @@ public class LobbyController extends ViewLifecycle {
     private TextField messageField;
 
     @FXML
-    private ListView<String> roomListView;
+    private ListView<GameRoomProto.GameRoomData> roomListView;
 
     @FXML
     private Button sendButton;
@@ -46,20 +56,45 @@ public class LobbyController extends ViewLifecycle {
 
     private GameConnectionManager gameConnectionManager = GameConnectionManager.getInstance();
 
-    @FXML
-    public void initialize() {
+    private ScheduledExecutorService scheduler;
+    private ScheduledFuture<?> roomRefreshTask;
+
+    @Override
+    public void onShow(Object data) {
         // 从缓存中获取用户名
-        String username = UserInfoManager.getInstance().getUsername();
-        if (username != null && !username.isEmpty()) {
-            welcomeLabel.setText("欢迎, " + username);
+        String nickname = UserInfoManager.getInstance().getNickname();
+        if (nickname != null && !nickname.isEmpty()) {
+            welcomeLabel.setText("欢迎, " + nickname);
         }
         // 初始化按钮实践
         initCreateRoomButton();
         initJoinRoomButton();
 
-        // 初始化假数据
+
+        // 向服务端获取初始化数据
         initializeChat();
-        initializeRooms();
+        queryRooms();
+
+        // 创建定时任务调度器
+        scheduler = Executors.newSingleThreadScheduledExecutor();
+        // 每5秒执行一次
+        roomRefreshTask = scheduler.scheduleAtFixedRate(
+                this::queryRooms,
+                5,
+                5,
+                TimeUnit.SECONDS
+        );
+    }
+
+    @Override
+    public void onHide() {
+        // 停止定时任务
+        if (roomRefreshTask != null && !roomRefreshTask.isCancelled()) {
+            roomRefreshTask.cancel(false);
+        }
+        if (scheduler != null && !scheduler.isShutdown()) {
+            scheduler.shutdown();
+        }
     }
 
     private void initCreateRoomButton() {
@@ -126,17 +161,52 @@ public class LobbyController extends ViewLifecycle {
                         .build())
                         .thenApply(resp -> {
                             GameRoomProto.CreateGameRoomResponse r = ProtoBufUtil.parseRespBody(resp, GameRoomProto.CreateGameRoomResponse.parser());
-                            return new Object[]{resp, r};
+                            // 保存房间创建数据，用于后续组装 GameRoomData
+                            return new Object[]{resp, r, data.roomName, data.maxPlayers};
                         });
             }).orElseGet(() -> CompletableFuture.completedFuture(null));
         });
         createRoomButton.setOnSuccess(obj -> {
-            // 创建房间成功
-            showAlert("创建房间成功", "");
+            Object[] arr = (Object[]) obj;
+            CommonProto.BaseResponse resp = (CommonProto.BaseResponse) arr[0];
+            GameRoomProto.CreateGameRoomResponse r = (GameRoomProto.CreateGameRoomResponse) arr[1];
+            if (resp == null || resp.getCode() != ErrorCode.OK.getCode()) {
+                MessageUtil.showError("创建房间失败，请检查房间名称或网络连接");
+                return;
+            }
+            long roomId = r.getRoomId();
+            String roomName = (String) arr[2];
+            int maxPlayers = (Integer) arr[3];
+            
+            // 获取创建者信息
+            Long creatorId = UserInfoManager.getInstance().getPlayerId();
+            String nickname = UserInfoManager.getInstance().getNickname();
+            
+            // 组装 GameRoomDetail 对象
+            GameRoomProto.GameRoomDetail.Builder detailBuilder = GameRoomProto.GameRoomDetail.newBuilder()
+                    .setId(roomId)
+                    .setName(roomName)
+                    .setMaxPlayers(maxPlayers)
+                    .setCreatorId(creatorId)
+                    .setStatus(GameRoomProto.RoomStatus.WAITING); // 初始状态为等待中
+            
+            // 添加创建者到玩家列表
+            if (nickname != null && !nickname.isEmpty()) {
+                GameRoomProto.GameRoomPlayerData playerData = GameRoomProto.GameRoomPlayerData.newBuilder()
+                        .setPlayerId(creatorId)
+                        .setNickName(nickname)
+                        .build();
+                detailBuilder.addPlayers(playerData);
+            }
+            
+            GameRoomProto.GameRoomDetail roomDetail = detailBuilder.build();
+            
+            // 跳转进入房间页面，传递房间详情
+            ViewManager.getInstance().show(ViewEnum.ROOM, roomDetail);
         });
         createRoomButton.setOnError(ex -> {
             // 创建房间失败
-            showAlert("创建房间失败", "请检查网络连接或稍后再试");
+            MessageUtil.showError("创建房间失败，请检查网络连接或稍后再试");
         });
     }
 
@@ -153,16 +223,40 @@ public class LobbyController extends ViewLifecycle {
 
     private void initJoinRoomButton() {
         joinRoomButton.setAction(() -> {
-            // 加入房间逻辑
-            return CompletableFuture.completedFuture(null);
+            // 获取选中的房间
+            GameRoomProto.GameRoomData selectedRoom = roomListView.getSelectionModel().getSelectedItem();
+            if (selectedRoom == null) {
+                MessageUtil.showWarning("请先选择一个房间");
+                return CompletableFuture.completedFuture(null);
+            }
+            
+            long roomId = selectedRoom.getId();
+            return gameConnectionManager.sendAndListenFuture(GameMsgType.JOIN_ROOM,
+                    GameRoomProto.JoinGameRoomRequest.newBuilder()
+                            .setRoomId(roomId)
+                            .setPlayerId(UserInfoManager.getInstance().getPlayerId())
+                            .build())
+                    .thenApply(resp -> {
+                        GameRoomProto.GameRoomDetail r = ProtoBufUtil.parseRespBody(resp, GameRoomProto.GameRoomDetail.parser());
+                        return new Object[]{resp, r};
+                    });
         });
         joinRoomButton.setOnSuccess(obj -> {
-            // 加入房间成功
-            showAlert("加入房间成功", "欢迎来到游戏房间");
+            if (obj == null) {
+                return;
+            }
+            Object[] arr = (Object[]) obj;
+            CommonProto.BaseResponse resp = (CommonProto.BaseResponse) arr[0];
+            GameRoomProto.GameRoomDetail r = (GameRoomProto.GameRoomDetail) arr[1];
+            if (resp == null || resp.getCode() != ErrorCode.OK.getCode()) {
+                MessageUtil.showError("加入房间失败" + resp.getCode());
+                return;
+            }
+            ViewManager.getInstance().show(ViewEnum.ROOM, r);
         });
         joinRoomButton.setOnError(ex -> {
             // 加入房间失败
-            showAlert("加入房间失败", "请检查房间ID或网络连接");
+            MessageUtil.showError("加入房间失败，请检查房间ID或网络连接");
         });
     }
 
@@ -174,18 +268,35 @@ public class LobbyController extends ViewLifecycle {
         chatArea.appendText("玩家2: 我在! 我在!\n");
     }
 
-    private void initializeRooms() {
-        // 添加一些假的房间数据
-        roomListView.getItems().addAll(
-                "房间1 - 经典模式 (2/4)",
-                "房间2 - 团队对抗 (3/4)",
-                "房间3 - 生存模式 (1/4)",
-                "房间4 - 自定义地图 (0/4)",
-                "房间5 - 快速对战 (4/4)",
-                "房间6 - 排位赛 (2/4)",
-                "房间7 - 娱乐模式 (1/4)",
-                "房间8 - 新手练习 (0/4)"
-        );
+    private void queryRooms() {
+        gameConnectionManager.sendAndListenFuture(GameMsgType.PAGE_ROOM,
+                GameRoomProto.PageRequest.newBuilder().setPageNum(1).setPageSize(10).build()
+        ).thenAccept(resp -> {
+            if (resp.getCode() != ErrorCode.OK.getCode()) {
+                throw new BusinessException(ErrorCode.of(resp.getCode()));
+            }
+            GameRoomProto.PageResponse r = ProtoBufUtil.parseRespBody(resp, GameRoomProto.PageResponse.parser());
+            List<GameRoomProto.GameRoomData> dataList = r.getDataList();
+            Platform.runLater(() -> {
+                // 清空现有列表
+                roomListView.getItems().clear();
+                // 添加新数据（直接存储 GameRoomData 对象）
+                roomListView.getItems().addAll(dataList);
+                
+                // 设置单元格工厂，自定义显示格式
+                roomListView.setCellFactory(param -> new ListCell<GameRoomProto.GameRoomData>() {
+                    @Override
+                    protected void updateItem(GameRoomProto.GameRoomData item, boolean empty) {
+                        super.updateItem(item, empty);
+                        if (empty || item == null) {
+                            setText(null);
+                        } else {
+                            setText(item.getName() + " - " + item.getStatus().name() + " (" + item.getNowPlayers() + "/" + item.getMaxPlayers() + ")");
+                        }
+                    }
+                });
+            });
+        });
     }
 
     @FXML
@@ -207,14 +318,6 @@ public class LobbyController extends ViewLifecycle {
     protected void onLogoutClick(ActionEvent event) {
         // 清除用户信息
         UserInfoManager.getInstance().clearUserinfo();
-        ViewManager.getInstance().show("login-view.fxml", "登录", 350, 400);
-    }
-
-    private void showAlert(String title, String content) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(content);
-        alert.showAndWait();
+        ViewManager.getInstance().show(ViewEnum.LOGIN);
     }
 }

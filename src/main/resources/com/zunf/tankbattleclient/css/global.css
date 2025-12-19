@@ -1,31 +1,149 @@
 /* 全局样式 */
+
+/* ========== 全局颜色定义 ========== */
+
+/* 背景色 */
 .root {
     -fx-font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
+    -fx-background-color: #2c3e50; /* 主背景色 */
 }
 
-.button {
-    -fx-cursor: hand;
+.mainContainer, #mainContainer {
+    -fx-background-color: #34495e; /* 容器背景色 */
 }
 
-.text-field, .password-field {
-    -fx-background-color: #ffffff;
-    -fx-border-color: #bdc3c7;
-    -fx-border-width: 1px;
-    -fx-border-radius: 4px;
-    -fx-padding: 6px 10px;
-}
-
-.text-field:focused, .password-field:focused {
-    -fx-border-color: #3498db;
-    -fx-effect: dropshadow(gaussian, rgba(52, 152, 219, 0.3), 5, 0, 0, 0);
-}
-
+/* 文字颜色 */
 .label {
     -fx-font-size: 14px;
+    -fx-text-fill: #ecf0f1; /* 主文字颜色 */
 }
 
 .label.title {
     -fx-font-size: 24px;
     -fx-font-weight: bold;
     -fx-alignment: center;
+}
+
+.label.highlight {
+    -fx-text-fill: #f39c12; /* 强调文字颜色（橙色） */
+}
+
+.label.secondary {
+    -fx-text-fill: #bdc3c7; /* 次要文字颜色（灰色） */
+}
+
+/* 输入框样式 */
+.text-field, .password-field {
+    -fx-background-color: #ecf0f1; /* 输入框背景色 */
+    -fx-border-color: #bdc3c7; /* 边框颜色 */
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-padding: 6px 10px;
+}
+
+.text-field:focused, .password-field:focused {
+    -fx-border-color: #3498db; /* 焦点边框颜色（蓝色） */
+    -fx-effect: dropshadow(gaussian, rgba(52, 152, 219, 0.3), 5, 0, 0, 0);
+}
+
+/* 文本区域样式 */
+.text-area {
+    -fx-background-color: #ecf0f1;
+    -fx-border-color: #bdc3c7;
+    -fx-border-width: 1px;
+    -fx-border-radius: 5px;
+    -fx-padding: 8px;
+}
+
+/* 列表视图样式 */
+.list-view {
+    -fx-background-color: #ecf0f1;
+    -fx-border-color: #bdc3c7;
+    -fx-border-width: 1px;
+    -fx-border-radius: 5px;
+}
+
+.list-view .list-cell {
+    -fx-background-color: #ecf0f1;
+    -fx-text-fill: #2c3e50; /* 深色文字 */
+    -fx-padding: 8px;
+}
+
+.list-view .list-cell:selected {
+    -fx-background-color: #3498db; /* 选中背景色（蓝色） */
+    -fx-text-fill: white;
+}
+
+.list-view .list-cell:hover {
+    -fx-background-color: #d5dbdb; /* 悬停背景色 */
+}
+
+/* 按钮基础样式 */
+.button {
+    -fx-cursor: hand;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 5px;
+    /* 默认按钮样式（主按钮样式） */
+    -fx-background-color: #f39c12;
+}
+
+.button:hover {
+    -fx-background-color: #e67e22;
+}
+
+.button:pressed {
+    -fx-background-color: #d35400;
+}
+
+/* 主按钮（橙色）- 与默认样式相同，可通过类名明确指定 */
+.button.primary {
+    -fx-background-color: #f39c12;
+}
+
+.button.primary:hover {
+    -fx-background-color: #e67e22;
+}
+
+.button.primary:pressed {
+    -fx-background-color: #d35400;
+}
+
+/* 危险按钮（红色） */
+.button.danger {
+    -fx-background-color: #e74c3c;
+}
+
+.button.danger:hover {
+    -fx-background-color: #c0392b;
+}
+
+.button.danger:pressed {
+    -fx-background-color: #a93226;
+}
+
+/* 成功按钮（绿色） */
+.button.success {
+    -fx-background-color: #27ae60;
+}
+
+.button.success:hover {
+    -fx-background-color: #229954;
+}
+
+.button.success:pressed {
+    -fx-background-color: #1e8449;
+}
+
+/* 次要按钮（灰色） */
+.button.secondary {
+    -fx-background-color: #95a5a6;
+}
+
+.button.secondary:hover {
+    -fx-background-color: #7f8c8d;
+}
+
+.button.secondary:pressed {
+    -fx-background-color: #6c7a7c;
 }

@@ -2,6 +2,7 @@ package com.zunf.tankbattleclient.manager;
 
 import com.zunf.tankbattleclient.TankBattleApplication;
 import com.zunf.tankbattleclient.controller.ViewLifecycle;
+import com.zunf.tankbattleclient.enums.ViewEnum;
 import com.zunf.tankbattleclient.exception.BusinessException;
 import com.zunf.tankbattleclient.exception.ErrorCode;
 import javafx.fxml.FXMLLoader;
@@ -35,6 +36,7 @@ public class ViewManager {
 
     private final Stage stage;
     private ViewLifecycle currentLifecycle;
+    private Object viewData;
 
     public ViewManager(Stage stage) {
         this.stage = stage;
@@ -44,6 +46,39 @@ public class ViewManager {
         });
     }
 
+    /**
+     * 获取当前主窗口 Stage
+     * @return 主窗口 Stage
+     */
+    public Stage getStage() {
+        return stage;
+    }
+
+    /**
+     * 显示视图（使用枚举）
+     * @param viewEnum 视图类型枚举
+     */
+    public void show(ViewEnum viewEnum) {
+        show(viewEnum, null);
+    }
+
+    /**
+     * 显示视图（使用枚举，带参数）
+     * @param viewEnum 视图类型枚举
+     * @param data 传递给视图的数据
+     */
+    public void show(ViewEnum viewEnum, Object data) {
+        this.viewData = data;
+        show(viewEnum.getFxmlFileName(), viewEnum.getTitle(), viewEnum.getWidth(), viewEnum.getHeight());
+    }
+
+    /**
+     * 显示视图
+     * @param fxml FXML文件名
+     * @param title 窗口标题
+     * @param w 窗口宽度
+     * @param h 窗口高度
+     */
     public void show(String fxml, String title, double w, double h) {
         // 切换前：通知旧页面隐藏（释放资源）
         if (currentLifecycle != null) {
@@ -66,7 +101,8 @@ public class ViewManager {
         stage.show();
 
         if (currentLifecycle != null) {
-            currentLifecycle.onShow();
+            currentLifecycle.onShow(viewData);
+            viewData = null; // 使用后清空，避免影响下次跳转
         }
     }
 }

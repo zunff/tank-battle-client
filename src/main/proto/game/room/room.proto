@@ -34,6 +34,7 @@ message GameRoomData {
   int64 id = 1;
   string name = 2;
   int32 maxPlayers = 3;
+  int32 nowPlayers = 4;
   RoomStatus status = 5;
 }
 // 获取房间列表  end
