@@ -17,6 +17,8 @@ public enum GameMsgType {
 
     // server -> client
     PONG(1001),
+    PLAYER_JOIN_ROOM(1002, com.zunf.tankbattleclient.protobuf.game.room.GameRoomProto.GameRoomPlayerData.parser()),
+    PLAYER_LEAVE_ROOM(1003, com.zunf.tankbattleclient.protobuf.game.room.GameRoomProto.GameRoomPlayerData.parser()),
 
     // common
     ERROR(0),

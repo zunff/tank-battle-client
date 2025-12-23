@@ -1,5 +1,6 @@
 package com.zunf.tankbattleclient.controller;
 
+import com.google.protobuf.MessageLite;
 import com.zunf.tankbattleclient.enums.GameMsgType;
 import com.zunf.tankbattleclient.enums.ViewEnum;
 import com.zunf.tankbattleclient.manager.GameConnectionManager;
@@ -9,6 +10,7 @@ import com.zunf.tankbattleclient.model.PlayerItem;
 import com.zunf.tankbattleclient.protobuf.game.room.GameRoomProto;
 import com.zunf.tankbattleclient.ui.AsyncButton;
 import com.zunf.tankbattleclient.util.MessageUtil;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -17,6 +19,7 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 
+import java.util.function.Consumer;
 import java.util.concurrent.CompletableFuture;
 
 public class RoomController extends ViewLifecycle {
@@ -51,6 +54,10 @@ public class RoomController extends ViewLifecycle {
     private GameRoomProto.GameRoomDetail roomDetail;
 
     private final GameConnectionManager gameConnectionManager = GameConnectionManager.getInstance();
+    
+    // 保存监听回调引用，用于移除监听
+    private final Consumer<MessageLite> joinRoomCallback = this::onPlayerJoinRoom;
+    private final Consumer<MessageLite> leaveRoomCallback = this::onPlayerLeaveRoom;
 
     @Override
     public void onShow(Object data) {
@@ -63,10 +70,81 @@ public class RoomController extends ViewLifecycle {
             MessageUtil.showError("房间数据加载失败，请重试");
             ViewManager.getInstance().show(ViewEnum.LOBBY);
         }
+        // 监听加入房间和离开房间消息
+        gameConnectionManager.listenMessage(GameMsgType.PLAYER_JOIN_ROOM, joinRoomCallback);
+        gameConnectionManager.listenMessage(GameMsgType.PLAYER_LEAVE_ROOM, leaveRoomCallback);
+    }
+
+    private void onPlayerLeaveRoom(MessageLite messageLite) {
+        if (roomDetail == null) {
+            return;
+        }
+        
+        try {
+            GameRoomProto.GameRoomPlayerData roomPlayer = (GameRoomProto.GameRoomPlayerData) messageLite;
+            Long playerId = roomPlayer.getPlayerId();
+
+            // 从玩家列表中移除该玩家
+            playerListView.getItems().removeIf(item -> item.getPlayerId().equals(playerId));
+
+            // 更新玩家数量
+            updatePlayerCount();
+
+            // 在聊天区域显示离开消息
+            chatArea.appendText("系统消息: " + roomPlayer.getNickName() + " 离开了房间\n");
+            chatArea.positionCaret(chatArea.getText().length());
+        } catch (Exception e) {
+            System.err.println("处理玩家离开房间消息失败: " + e.getMessage());
+        }
+    }
+
+    private void onPlayerJoinRoom(MessageLite messageLite) {
+        if (roomDetail == null) {
+            return;
+        }
+        
+        try {
+            GameRoomProto.GameRoomPlayerData roomPlayer = (GameRoomProto.GameRoomPlayerData) messageLite;
+            Long playerId = roomPlayer.getPlayerId();
+            String nickName = roomPlayer.getNickName();
+            Long creatorId = roomDetail.getCreatorId();
+
+            // 检查玩家是否已存在（避免重复添加）
+            boolean exists = playerListView.getItems().stream()
+                    .anyMatch(item -> item.getPlayerId().equals(playerId));
+
+            if (!exists) {
+                // 判断是否为房主
+                boolean isCreator = playerId.equals(creatorId);
+                PlayerItem playerItem = new PlayerItem(playerId, nickName, isCreator);
+                playerListView.getItems().add(playerItem);
+
+                // 更新玩家数量
+                updatePlayerCount();
+
+                // 在聊天区域显示加入消息
+                chatArea.appendText("系统消息: " + nickName + " 加入了房间\n");
+                chatArea.positionCaret(chatArea.getText().length());
+            }
+        } catch (Exception e) {
+            System.err.println("处理玩家加入房间消息失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 更新玩家数量显示
+     */
+    private void updatePlayerCount() {
+        int currentCount = playerListView.getItems().size();
+        playerCountLabel.setText("玩家: " + currentCount + "/" + roomDetail.getMaxPlayers());
     }
 
     @Override
     public void onHide() {
+        // 移除消息监听
+        gameConnectionManager.removeListener(GameMsgType.PLAYER_JOIN_ROOM, joinRoomCallback);
+        gameConnectionManager.removeListener(GameMsgType.PLAYER_LEAVE_ROOM, leaveRoomCallback);
+        
         // 清理资源
         roomDetail = null;
         playerListView.getItems().clear();

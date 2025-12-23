@@ -1,9 +1,9 @@
 package com.zunf.tankbattleclient.manager;
 
 import com.google.protobuf.MessageLite;
-import com.zunf.tankbattleclient.protobuf.CommonProto;
 import com.zunf.tankbattleclient.enums.GameMsgType;
 import com.zunf.tankbattleclient.model.message.InboundMessage;
+import com.zunf.tankbattleclient.protobuf.CommonProto;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -51,6 +51,14 @@ public final class GameConnectionManager extends TcpClientManager {
         int requestId  = requestIdAtomic.getAndIncrement();
         System.out.println("发送消息: " + type + " 请求ID: " + requestId);
         super.send((byte) type.getCode(), (byte) ConfigManager.getInstance().getProtocolVersion(), requestId, body);
+    }
+
+    public void listenMessage(GameMsgType msgType, Consumer<MessageLite> callback) {
+        msgCallbackEventManager.listenMessage(msgType, callback);
+    }
+
+    public void removeListener(GameMsgType msgType, Consumer<MessageLite> callback) {
+        msgCallbackEventManager.removeListener(msgType, callback);
     }
 
     public CompletableFuture<CommonProto.BaseResponse> sendAndListenFuture(GameMsgType type, MessageLite message) {

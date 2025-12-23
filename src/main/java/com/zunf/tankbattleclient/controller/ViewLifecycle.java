@@ -1,6 +1,5 @@
 package com.zunf.tankbattleclient.controller;
 
-import javafx.fxml.FXML;
 
 public abstract class ViewLifecycle {
 
