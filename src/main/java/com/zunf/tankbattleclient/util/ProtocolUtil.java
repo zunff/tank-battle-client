@@ -8,19 +8,29 @@ import static com.zunf.tankbattleclient.constant.ProtocolConstant.*;
 public class ProtocolUtil {
 
 
-    public static boolean verify(byte[] packet) {
-        if (packet == null || packet.length < HEADER_TOTAL_LENGTH) {
-            return false;
-        }
+    /**
+     * 校验某一帧：packet[off .. off+frameSize)
+     * 要求 frameSize == HEADER_TOTAL_LENGTH + bodyLength
+     */
+    public static boolean verify(byte[] packet, int off, int frameSize) {
+        if (packet == null) return false;
+        if (off < 0 || frameSize < HEADER_TOTAL_LENGTH) return false;
+        if (off + frameSize > packet.length) return false;
 
-        int length = ByteArrUtil.readInt(packet, BODY_LENGTH_FIELD_OFFSET);
-        if (length < 0 || packet.length != HEADER_TOTAL_LENGTH + length) {
-            return false;
-        }
+        int bodyLength = ByteArrUtil.readInt(packet, off + BODY_LENGTH_FIELD_OFFSET);
+        if (bodyLength < 0) return false;
+        if (frameSize != HEADER_TOTAL_LENGTH + bodyLength) return false;
 
-        int expectedCrc = ByteArrUtil.readInt(packet, CRC32_FIELD_OFFSET);
+        int expectedCrc = ByteArrUtil.readInt(packet, off + CRC32_FIELD_OFFSET);
 
-        int actualCrc = crc32TwoParts(packet, 0, CRC32_FIELD_OFFSET, HEADER_TOTAL_LENGTH, length);
+        // 计算范围：头部 [off, off+CRC32_FIELD_OFFSET) + body [off+HEADER_TOTAL_LENGTH, off+HEADER_TOTAL_LENGTH+bodyLength)
+        int actualCrc = crc32TwoParts(
+                packet,
+                off,                       // part1 start
+                CRC32_FIELD_OFFSET,        // part1 len（不含crc字段本身）
+                off + HEADER_TOTAL_LENGTH, // part2 start（body起点）
+                bodyLength                 // part2 len
+        );
 
         return expectedCrc == actualCrc;
     }

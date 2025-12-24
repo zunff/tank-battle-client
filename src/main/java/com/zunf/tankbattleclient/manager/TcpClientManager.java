@@ -80,7 +80,7 @@ public class TcpClientManager {
         startReader(in);
     }
 
-    public void send(byte type, byte version, int requestId, byte[] body) {
+    public void send(int type, byte version, int requestId, byte[] body) {
         if (!running.get()) {
             return;
         }

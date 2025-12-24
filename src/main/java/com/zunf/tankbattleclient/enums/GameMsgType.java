@@ -2,6 +2,7 @@ package com.zunf.tankbattleclient.enums;
 
 import com.google.protobuf.MessageLite;
 import com.google.protobuf.Parser;
+import com.zunf.tankbattleclient.protobuf.game.room.GameRoomProto;
 
 import java.util.Arrays;
 
@@ -16,13 +17,13 @@ public enum GameMsgType {
     LEAVE_ROOM(7),
 
     // server -> client
-    PONG(1001),
-    PLAYER_JOIN_ROOM(1002, com.zunf.tankbattleclient.protobuf.game.room.GameRoomProto.GameRoomPlayerData.parser()),
-    PLAYER_LEAVE_ROOM(1003, com.zunf.tankbattleclient.protobuf.game.room.GameRoomProto.GameRoomPlayerData.parser()),
+    PONG(10001),
+    PLAYER_JOIN_ROOM(10002, GameRoomProto.GameRoomPlayerData.parser()),
+    PLAYER_LEAVE_ROOM(10003, GameRoomProto.GameRoomPlayerData.parser()),
 
     // common
     ERROR(0),
-    UNKNOWN(2048);
+    UNKNOWN(20001);
 
     private final int code;
     private Parser<? extends MessageLite> parser;

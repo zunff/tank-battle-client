@@ -25,35 +25,33 @@ public final class ProtocolFrameReader {
     // 尝试取出一帧；没有完整帧则返回 null
     public InboundMessage tryDecodeOne() throws IOException {
         byte[] data = buffer.toByteArray();
-        if (data.length < HEADER_TOTAL_LENGTH) {
-            return null;
-        }
-        // CRC 校验
-        if (!ProtocolUtil.verify(data)) {
-            throw new IOException("CRC32 mismatch");
-        }
-
-        int type = data[OPERATION_TYPE_FIELD_OFFSET] & 0xFF;
-        int version = data[VERSION_FIELD_OFFSET] & 0xFF;
-        int requestId = ByteArrUtil.readInt(data, REQUEST_ID_FIELD_OFFSET);
+        if (data.length < HEADER_TOTAL_LENGTH) return null;
 
         int length = ByteArrUtil.readInt(data, BODY_LENGTH_FIELD_OFFSET);
-
-        if (length < 0 || length > 10_000_000) { // 防御：最大包体限制自己定
+        if (length < 0 || length > 10_000_000) {
             throw new IOException("Invalid length: " + length);
         }
 
         int frameSize = HEADER_TOTAL_LENGTH + length;
-        if (data.length < frameSize) return null; // 半包
+        if (data.length < frameSize) return null; // 半包：等更多数据
+
+        // 只对这一帧做 CRC 校验（不要校验整个 data）
+        if (!ProtocolUtil.verify(data, 0, frameSize)) {
+            throw new IOException("CRC32 mismatch");
+        }
+
+        int type = ByteArrUtil.readUnsignedShort(data, OPERATION_TYPE_FIELD_OFFSET); // type=2B
+        int version = data[VERSION_FIELD_OFFSET] & 0xFF;
+        int requestId = ByteArrUtil.readInt(data, REQUEST_ID_FIELD_OFFSET);
 
         byte[] body = Arrays.copyOfRange(data, HEADER_TOTAL_LENGTH, frameSize);
 
-        // 消费掉这一帧：把剩余数据重新放回 buffer
+        // 消费掉这一帧
         byte[] remaining = Arrays.copyOfRange(data, frameSize, data.length);
         buffer.reset();
         buffer.write(remaining);
 
-        return new InboundMessage((byte) type, (byte) version, requestId, body);
+        return new InboundMessage(type, (byte) version, requestId, body);
     }
     
 }

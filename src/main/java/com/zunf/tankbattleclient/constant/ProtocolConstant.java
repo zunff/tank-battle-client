@@ -2,8 +2,8 @@ package com.zunf.tankbattleclient.constant;
 
 /**
  * 自定义协议常量
- * 协议格式：协议头(10字节) + 协议体(N字节)
- * 协议头：操作类型(1B) + 版本号(1B) + 请求ID(4B) + 协议体长度(4B) + 校验码(4B)
+ * 协议格式：协议头(15字节) + 协议体(N字节)
+ * 协议头：操作类型(2B) + 版本号(1B) + 请求ID(4B) + 协议体长度(4B) + 校验码(4B)
  *
  * @author zunf
  */
@@ -12,7 +12,7 @@ public interface ProtocolConstant {
     /**
      * 协议头中各个字段的 bit 长度
      */
-    int OPERATION_TYPE_FIELD_LENGTH = 1;
+    int OPERATION_TYPE_FIELD_LENGTH = 2;
     int VERSION_FIELD_LENGTH = 1;
     int REQUEST_ID_FIELD_LENGTH = 4;
     int BODY_LENGTH_FIELD_LENGTH = 4;
