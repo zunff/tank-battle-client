@@ -10,7 +10,6 @@ import com.zunf.tankbattleclient.model.PlayerItem;
 import com.zunf.tankbattleclient.protobuf.game.room.GameRoomProto;
 import com.zunf.tankbattleclient.ui.AsyncButton;
 import com.zunf.tankbattleclient.util.MessageUtil;
-import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -75,6 +74,27 @@ public class RoomController extends ViewLifecycle {
         gameConnectionManager.listenMessage(GameMsgType.PLAYER_LEAVE_ROOM, leaveRoomCallback);
     }
 
+    @Override
+    public void onClose() {
+        // 如果用户在房间里，先发送离开房间消息
+        sendLeaveRoomMessage();
+        // 然后执行正常的隐藏逻辑
+        onHide();
+    }
+
+    @Override
+    public void onHide() {
+        // 移除消息监听
+        gameConnectionManager.removeListener(GameMsgType.PLAYER_JOIN_ROOM, joinRoomCallback);
+        gameConnectionManager.removeListener(GameMsgType.PLAYER_LEAVE_ROOM, leaveRoomCallback);
+
+        // 清理资源
+        roomDetail = null;
+        playerListView.getItems().clear();
+        chatArea.clear();
+    }
+
+
     private void onPlayerLeaveRoom(MessageLite messageLite) {
         if (roomDetail == null) {
             return;
@@ -83,6 +103,15 @@ public class RoomController extends ViewLifecycle {
         try {
             GameRoomProto.GameRoomPlayerData roomPlayer = (GameRoomProto.GameRoomPlayerData) messageLite;
             Long playerId = roomPlayer.getPlayerId();
+            Long creatorId = roomDetail.getCreatorId();
+
+            // 检查离开的玩家是否是房主
+            if (playerId.equals(creatorId)) {
+                // 房主离开，显示消息并返回大厅
+                MessageUtil.showWarning("房主已离开房间，房间已解散");
+                ViewManager.getInstance().show(ViewEnum.LOBBY);
+                return;
+            }
 
             // 从玩家列表中移除该玩家
             playerListView.getItems().removeIf(item -> item.getPlayerId().equals(playerId));
@@ -139,17 +168,6 @@ public class RoomController extends ViewLifecycle {
         playerCountLabel.setText("玩家: " + currentCount + "/" + roomDetail.getMaxPlayers());
     }
 
-    @Override
-    public void onHide() {
-        // 移除消息监听
-        gameConnectionManager.removeListener(GameMsgType.PLAYER_JOIN_ROOM, joinRoomCallback);
-        gameConnectionManager.removeListener(GameMsgType.PLAYER_LEAVE_ROOM, leaveRoomCallback);
-        
-        // 清理资源
-        roomDetail = null;
-        playerListView.getItems().clear();
-        chatArea.clear();
-    }
 
     private void initializeUI() {
         if (roomDetail == null) {
@@ -221,10 +239,21 @@ public class RoomController extends ViewLifecycle {
     @FXML
     protected void onLeaveRoomClick(ActionEvent event) {
         // 发个消息
-        gameConnectionManager.send(GameMsgType.LEAVE_ROOM, GameRoomProto.LeaveGameRoomRequest.newBuilder()
-                .setRoomId(roomDetail.getId()).setPlayerId(UserInfoManager.getInstance().getPlayerId()).build());
+        sendLeaveRoomMessage();
         // 离开房间，返回大厅
         ViewManager.getInstance().show(ViewEnum.LOBBY);
+    }
+
+    /**
+     * 发送离开房间消息
+     */
+    private void sendLeaveRoomMessage() {
+        if (roomDetail != null) {
+            gameConnectionManager.send(GameMsgType.LEAVE_ROOM, GameRoomProto.LeaveGameRoomRequest.newBuilder()
+                    .setRoomId(roomDetail.getId())
+                    .setPlayerId(UserInfoManager.getInstance().getPlayerId())
+                    .build());
+        }
     }
 }
 
