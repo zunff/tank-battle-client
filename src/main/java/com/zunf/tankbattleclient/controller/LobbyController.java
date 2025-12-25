@@ -154,13 +154,13 @@ public class LobbyController extends ViewLifecycle {
             return result.map(data -> {
                 // 这里可以添加实际的创建房间逻辑
                 System.out.println("创建房间: " + data.roomName + ", 最大人数: " + data.maxPlayers);
-                return gameConnectionManager.sendAndListenFuture(GameMsgType.CREATE_ROOM, GameRoomProto.CreateGameRoomRequest.newBuilder()
+                return gameConnectionManager.sendAndListenFuture(GameMsgType.CREATE_ROOM, GameRoomProto.CreateRequest.newBuilder()
                         .setName(data.roomName)
                         .setMaxPlayers(data.maxPlayers)
                         .setPlayerId(UserInfoManager.getInstance().getPlayerId())
                         .build())
                         .thenApply(resp -> {
-                            GameRoomProto.CreateGameRoomResponse r = ProtoBufUtil.parseRespBody(resp, GameRoomProto.CreateGameRoomResponse.parser());
+                            GameRoomProto.CreateResponse r = ProtoBufUtil.parseRespBody(resp, GameRoomProto.CreateResponse.parser());
                             // 保存房间创建数据，用于后续组装 GameRoomData
                             return new Object[]{resp, r, data.roomName, data.maxPlayers};
                         });
@@ -169,7 +169,7 @@ public class LobbyController extends ViewLifecycle {
         createRoomButton.setOnSuccess(obj -> {
             Object[] arr = (Object[]) obj;
             CommonProto.BaseResponse resp = (CommonProto.BaseResponse) arr[0];
-            GameRoomProto.CreateGameRoomResponse r = (GameRoomProto.CreateGameRoomResponse) arr[1];
+            GameRoomProto.CreateResponse r = (GameRoomProto.CreateResponse) arr[1];
             if (resp == null || resp.getCode() != ErrorCode.OK.getCode()) {
                 MessageUtil.showError("创建房间失败，请检查房间名称或网络连接");
                 return;
@@ -192,7 +192,7 @@ public class LobbyController extends ViewLifecycle {
             
             // 添加创建者到玩家列表
             if (nickname != null && !nickname.isEmpty()) {
-                GameRoomProto.GameRoomPlayerData playerData = GameRoomProto.GameRoomPlayerData.newBuilder()
+                GameRoomProto.PlayerInfo playerData = GameRoomProto.PlayerInfo.newBuilder()
                         .setPlayerId(creatorId)
                         .setNickName(nickname)
                         .build();
@@ -232,7 +232,7 @@ public class LobbyController extends ViewLifecycle {
             
             long roomId = selectedRoom.getId();
             return gameConnectionManager.sendAndListenFuture(GameMsgType.JOIN_ROOM,
-                    GameRoomProto.JoinGameRoomRequest.newBuilder()
+                    GameRoomProto.JoinRequest.newBuilder()
                             .setRoomId(roomId)
                             .setPlayerId(UserInfoManager.getInstance().getPlayerId())
                             .build())

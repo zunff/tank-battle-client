@@ -6,16 +6,23 @@ option java_outer_classname = "GameRoomProto";
 
 enum RoomStatus {
   WAITING = 0;
-  PLAYING = 1;
+  STARTING = 1;
+  PLAYING = 2;
 }
 
-message CreateGameRoomRequest {
+enum UserStatus {
+  LOBBY = 0;
+  READY = 1;
+  GAMING = 2;
+}
+
+message CreateRequest {
   string name = 1;
   int32 maxPlayers = 2;
   int64 playerId = 3;
 }
 
-message CreateGameRoomResponse {
+message CreateResponse {
   int64 roomId = 1;
 }
 
@@ -40,7 +47,7 @@ message GameRoomData {
 // 获取房间列表  end
 
 // 加入房间  begin
-message JoinGameRoomRequest {
+message JoinRequest {
   int64 roomId = 1;
   int64 playerId = 2;
 }
@@ -51,21 +58,29 @@ message GameRoomDetail {
   int32 maxPlayers = 3;
   int64 creatorId = 4;
   RoomStatus status = 5;
-  repeated GameRoomPlayerData players = 6;
+  repeated PlayerInfo players = 6;
 }
 
-message GameRoomPlayerData {
+message PlayerInfo {
   int64 playerId = 1;
   string nickName = 2;
+  UserStatus status = 3;
 }
-// 离开房间  end
+// 加入房间  end
 
-message LeaveGameRoomRequest {
+// 离开房间
+message LeaveRequest {
   int64 roomId = 1;
   int64 playerId = 2;
 }
 
-message StartGameRoomRequest {
+// 准备
+message ReadyRequest {
+  int64 roomId = 1;
+  int64 playerId = 2;
+}
+
+message StartRequest {
   int64 roomId = 1;
   int64 playerId = 2;
 }

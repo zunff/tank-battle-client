@@ -7,6 +7,7 @@ import com.zunf.tankbattleclient.manager.GameConnectionManager;
 import com.zunf.tankbattleclient.manager.UserInfoManager;
 import com.zunf.tankbattleclient.manager.ViewManager;
 import com.zunf.tankbattleclient.model.PlayerItem;
+import com.zunf.tankbattleclient.protobuf.CommonProto;
 import com.zunf.tankbattleclient.protobuf.game.room.GameRoomProto;
 import com.zunf.tankbattleclient.ui.AsyncButton;
 import com.zunf.tankbattleclient.util.MessageUtil;
@@ -48,6 +49,9 @@ public class RoomController extends ViewLifecycle {
     private AsyncButton startGameButton;
 
     @FXML
+    private AsyncButton readyButton;
+
+    @FXML
     private Button leaveRoomButton;
 
     private GameRoomProto.GameRoomDetail roomDetail;
@@ -57,6 +61,7 @@ public class RoomController extends ViewLifecycle {
     // 保存监听回调引用，用于移除监听
     private final Consumer<MessageLite> joinRoomCallback = this::onPlayerJoinRoom;
     private final Consumer<MessageLite> leaveRoomCallback = this::onPlayerLeaveRoom;
+    private final Consumer<MessageLite> readyCallback = this::onPlayerReady;
 
     @Override
     public void onShow(Object data) {
@@ -69,9 +74,10 @@ public class RoomController extends ViewLifecycle {
             MessageUtil.showError("房间数据加载失败，请重试");
             ViewManager.getInstance().show(ViewEnum.LOBBY);
         }
-        // 监听加入房间和离开房间消息
+        // 监听加入房间、离开房间和准备消息
         gameConnectionManager.listenMessage(GameMsgType.PLAYER_JOIN_ROOM, joinRoomCallback);
         gameConnectionManager.listenMessage(GameMsgType.PLAYER_LEAVE_ROOM, leaveRoomCallback);
+        gameConnectionManager.listenMessage(GameMsgType.PLAYER_READY, readyCallback);
     }
 
     @Override
@@ -87,6 +93,7 @@ public class RoomController extends ViewLifecycle {
         // 移除消息监听
         gameConnectionManager.removeListener(GameMsgType.PLAYER_JOIN_ROOM, joinRoomCallback);
         gameConnectionManager.removeListener(GameMsgType.PLAYER_LEAVE_ROOM, leaveRoomCallback);
+        gameConnectionManager.removeListener(GameMsgType.PLAYER_READY, readyCallback);
 
         // 清理资源
         roomDetail = null;
@@ -101,7 +108,7 @@ public class RoomController extends ViewLifecycle {
         }
         
         try {
-            GameRoomProto.GameRoomPlayerData roomPlayer = (GameRoomProto.GameRoomPlayerData) messageLite;
+            GameRoomProto.PlayerInfo roomPlayer = (GameRoomProto.PlayerInfo) messageLite;
             Long playerId = roomPlayer.getPlayerId();
             Long creatorId = roomDetail.getCreatorId();
 
@@ -133,7 +140,7 @@ public class RoomController extends ViewLifecycle {
         }
         
         try {
-            GameRoomProto.GameRoomPlayerData roomPlayer = (GameRoomProto.GameRoomPlayerData) messageLite;
+            GameRoomProto.PlayerInfo roomPlayer = (GameRoomProto.PlayerInfo) messageLite;
             Long playerId = roomPlayer.getPlayerId();
             String nickName = roomPlayer.getNickName();
             Long creatorId = roomDetail.getCreatorId();
@@ -157,6 +164,34 @@ public class RoomController extends ViewLifecycle {
             }
         } catch (Exception e) {
             System.err.println("处理玩家加入房间消息失败: " + e.getMessage());
+        }
+    }
+
+    private void onPlayerReady(MessageLite messageLite) {
+        if (roomDetail == null) {
+            return;
+        }
+        
+        try {
+            GameRoomProto.PlayerInfo roomPlayer = (GameRoomProto.PlayerInfo) messageLite;
+            Long playerId = roomPlayer.getPlayerId();
+            String nickName = roomPlayer.getNickName();
+
+            // 更新该玩家的准备状态
+            playerListView.getItems().stream()
+                    .filter(item -> item.getPlayerId().equals(playerId))
+                    .findFirst()
+                    .ifPresent(item -> {
+                        item.setReady(true);
+                        // 刷新 ListView 显示
+                        playerListView.refresh();
+                    });
+
+            // 在聊天区域显示准备消息
+            chatArea.appendText("系统消息: " + nickName + " 已准备\n");
+            chatArea.positionCaret(chatArea.getText().length());
+        } catch (Exception e) {
+            System.err.println("处理玩家准备消息失败: " + e.getMessage());
         }
     }
     
@@ -187,9 +222,11 @@ public class RoomController extends ViewLifecycle {
         // 从房间详情中获取玩家列表
         Long creatorId = roomDetail.getCreatorId();
         
-        for (GameRoomProto.GameRoomPlayerData playerData : roomDetail.getPlayersList()) {
+        for (GameRoomProto.PlayerInfo playerData : roomDetail.getPlayersList()) {
             boolean isCreator = playerData.getPlayerId() == creatorId;
+            boolean isReady = playerData.getStatus() == GameRoomProto.UserStatus.READY;
             PlayerItem playerItem = new PlayerItem(playerData.getPlayerId(), playerData.getNickName(), isCreator);
+            playerItem.setReady(isReady);
             playerListView.getItems().add(playerItem);
         }
 
@@ -199,17 +236,23 @@ public class RoomController extends ViewLifecycle {
 
         // 初始化按钮事件和显示控制
         initStartGameButton();
-        updateStartButtonVisibility();
+        initReadyButton();
+        updateButtonVisibility();
     }
 
     /**
-     * 更新开始按钮的可见性（只对房主显示）
+     * 更新按钮的可见性
+     * 开始游戏按钮只对房主显示
+     * 准备按钮对非房主显示
      */
-    private void updateStartButtonVisibility() {
+    private void updateButtonVisibility() {
         Long currentPlayerId = UserInfoManager.getInstance().getPlayerId();
         boolean isCreator = currentPlayerId != null && currentPlayerId.equals(roomDetail.getCreatorId());
         startGameButton.setVisible(isCreator);
         startGameButton.setManaged(isCreator);
+        // 房主不需要准备，所以准备按钮对非房主显示
+        readyButton.setVisible(!isCreator);
+        readyButton.setManaged(!isCreator);
     }
 
     private void initStartGameButton() {
@@ -222,6 +265,59 @@ public class RoomController extends ViewLifecycle {
         });
         startGameButton.setOnError(ex -> {
             // 开始游戏失败
+        });
+    }
+
+    private void initReadyButton() {
+        readyButton.setAction(() -> {
+            if (roomDetail == null) {
+                MessageUtil.showError("房间数据异常");
+                return CompletableFuture.completedFuture(null);
+            }
+            
+            Long playerId = UserInfoManager.getInstance().getPlayerId();
+            if (playerId == null) {
+                MessageUtil.showError("用户信息异常");
+                return CompletableFuture.completedFuture(null);
+            }
+            
+            return gameConnectionManager.sendAndListenFuture(
+                GameMsgType.READY,
+                GameRoomProto.ReadyRequest.newBuilder()
+                    .setRoomId(roomDetail.getId())
+                    .setPlayerId(playerId)
+                    .build()
+            );
+        });
+        
+        readyButton.setOnSuccess(obj -> {
+            CommonProto.BaseResponse resp = (CommonProto.BaseResponse) obj;
+            if (resp != null && resp.getCode() == 0) {
+                // 准备成功，更新自己的显示状态
+                Long currentPlayerId = UserInfoManager.getInstance().getPlayerId();
+                if (currentPlayerId != null) {
+                    playerListView.getItems().stream()
+                            .filter(item -> item.getPlayerId().equals(currentPlayerId))
+                            .findFirst()
+                            .ifPresent(item -> {
+                                item.setReady(true);
+                                // 刷新 ListView 显示
+                                playerListView.refresh();
+                            });
+                    // 解绑 disable 属性，然后手动禁用并显示"已准备"
+                    readyButton.disableProperty().unbind();
+                    readyButton.setText("已准备");
+                    readyButton.setDisable(true);
+                    // 移除按钮的点击事件，防止再次点击
+                    readyButton.setOnAction(null);
+                }
+            } else {
+                MessageUtil.showError("准备失败: " + (resp == null ? "未知错误" : resp.getMessage()));
+            }
+        });
+        
+        readyButton.setOnError(ex -> {
+            MessageUtil.showError("准备失败: " + ex.getMessage());
         });
     }
 
@@ -249,7 +345,7 @@ public class RoomController extends ViewLifecycle {
      */
     private void sendLeaveRoomMessage() {
         if (roomDetail != null) {
-            gameConnectionManager.send(GameMsgType.LEAVE_ROOM, GameRoomProto.LeaveGameRoomRequest.newBuilder()
+            gameConnectionManager.send(GameMsgType.LEAVE_ROOM, GameRoomProto.LeaveRequest.newBuilder()
                     .setRoomId(roomDetail.getId())
                     .setPlayerId(UserInfoManager.getInstance().getPlayerId())
                     .build());

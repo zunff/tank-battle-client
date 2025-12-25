@@ -15,11 +15,13 @@ public enum GameMsgType {
     PAGE_ROOM(5),
     JOIN_ROOM(6),
     LEAVE_ROOM(7),
+    READY(8),
 
     // server -> client
     PONG(10001),
-    PLAYER_JOIN_ROOM(10002, GameRoomProto.GameRoomPlayerData.parser()),
-    PLAYER_LEAVE_ROOM(10003, GameRoomProto.GameRoomPlayerData.parser()),
+    PLAYER_JOIN_ROOM(10002, GameRoomProto.PlayerInfo.parser()),
+    PLAYER_LEAVE_ROOM(10003, GameRoomProto.PlayerInfo.parser()),
+    PLAYER_READY(10004, GameRoomProto.PlayerInfo.parser()),
 
     // common
     ERROR(0),

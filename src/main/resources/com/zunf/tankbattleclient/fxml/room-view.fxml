@@ -88,6 +88,7 @@
       <VBox prefWidth="200.0" spacing="15.0" BorderPane.alignment="CENTER">
          <children>
             <AsyncButton fx:id="startGameButton" text="开始游戏" loadingText="开始中" />
+            <AsyncButton fx:id="readyButton" text="准备" loadingText="准备中" />
             <Button fx:id="leaveRoomButton" mnemonicParsing="false" onAction="#onLeaveRoomClick" text="离开房间" />
          </children>
          <padding>
