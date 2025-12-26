@@ -3,8 +3,6 @@ package com.zunf.tankbattleclient.ui;
 
 import com.zunf.tankbattleclient.exception.BusinessException;
 import com.zunf.tankbattleclient.exception.ErrorCode;
-import com.zunf.tankbattleclient.protobuf.game.auth.AuthProto;
-import com.zunf.tankbattleclient.util.ProtoBufUtil;
 import javafx.application.Platform;
 import javafx.beans.property.*;
 import javafx.scene.control.Button;
@@ -33,6 +31,7 @@ public class AsyncButton extends Button {
     private final ObjectProperty<Consumer<BusinessException>> onError = new SimpleObjectProperty<>();
 
     private String normalText;
+    private boolean permanentlyDisabled = false;
 
     public AsyncButton() {
         // 运行中自动禁用
@@ -81,8 +80,11 @@ public class AsyncButton extends Button {
                     if (bad != null) bad.accept(wrap(err));
                 }
             } finally {
-                running.set(false);
-                setText(normalText);
+                // 如果按钮已被永久禁用，不再恢复状态
+                if (!permanentlyDisabled) {
+                    running.set(false);
+                    setText(normalText);
+                }
             }
         }));
     }
@@ -93,8 +95,11 @@ public class AsyncButton extends Button {
                 Consumer<BusinessException> bad = onError.get();
                 if (bad != null) bad.accept(wrap(t));
             } finally {
-                running.set(false);
-                setText(normalText);
+                // 如果按钮已被永久禁用，不再恢复状态
+                if (!permanentlyDisabled) {
+                    running.set(false);
+                    setText(normalText);
+                }
             }
         });
     }
@@ -133,4 +138,30 @@ public class AsyncButton extends Button {
     public Consumer<BusinessException> getOnError() { return onError.get(); }
     public void setOnError(Consumer<BusinessException> c) { onError.set(c); }
     public ObjectProperty<Consumer<BusinessException>> onErrorProperty() { return onError; }
+
+    /**
+     * 永久禁用按钮并设置文本
+     * 用于表示按钮已完成某个状态，不再需要交互
+     * @param text 要显示的文本
+     */
+    public void setPermanentlyDisabled(String text) {
+        Platform.runLater(() -> {
+            permanentlyDisabled = true;
+            // 解绑 disable 属性
+            disableProperty().unbind();
+            // 设置文本
+            setText(text);
+            // 禁用按钮
+            setDisable(true);
+            // 移除点击事件，防止再次点击
+            setOnAction(null);
+        });
+    }
+
+    /**
+     * 检查按钮是否已被永久禁用
+     */
+    public boolean isPermanentlyDisabled() {
+        return permanentlyDisabled;
+    }
 }

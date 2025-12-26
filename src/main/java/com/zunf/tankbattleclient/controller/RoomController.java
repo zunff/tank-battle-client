@@ -52,7 +52,7 @@ public class RoomController extends ViewLifecycle {
     private AsyncButton readyButton;
 
     @FXML
-    private Button leaveRoomButton;
+    private AsyncButton leaveRoomButton;
 
     private GameRoomProto.GameRoomDetail roomDetail;
 
@@ -237,6 +237,7 @@ public class RoomController extends ViewLifecycle {
         // 初始化按钮事件和显示控制
         initStartGameButton();
         initReadyButton();
+        initLeaveRoomButton();
         updateButtonVisibility();
     }
 
@@ -304,12 +305,10 @@ public class RoomController extends ViewLifecycle {
                                 // 刷新 ListView 显示
                                 playerListView.refresh();
                             });
-                    // 解绑 disable 属性，然后手动禁用并显示"已准备"
-                    readyButton.disableProperty().unbind();
-                    readyButton.setText("已准备");
-                    readyButton.setDisable(true);
-                    // 移除按钮的点击事件，防止再次点击
-                    readyButton.setOnAction(null);
+                    // 永久禁用按钮并显示"已准备"
+                    readyButton.setPermanentlyDisabled("已准备");
+                    // 准备后不能离开房间
+                    leaveRoomButton.setPermanentlyDisabled("离开房间");
                 }
             } else {
                 MessageUtil.showError("准备失败: " + (resp == null ? "未知错误" : resp.getMessage()));
@@ -332,23 +331,55 @@ public class RoomController extends ViewLifecycle {
         }
     }
 
-    @FXML
-    protected void onLeaveRoomClick(ActionEvent event) {
-        // 发个消息
-        sendLeaveRoomMessage();
-        // 离开房间，返回大厅
-        ViewManager.getInstance().show(ViewEnum.LOBBY);
+    private void initLeaveRoomButton() {
+        leaveRoomButton.setAction(() -> {
+            if (roomDetail == null) {
+                MessageUtil.showError("房间数据异常");
+                return CompletableFuture.completedFuture(null);
+            }
+            
+            Long playerId = UserInfoManager.getInstance().getPlayerId();
+            if (playerId == null) {
+                MessageUtil.showError("用户信息异常");
+                return CompletableFuture.completedFuture(null);
+            }
+            
+            return gameConnectionManager.sendAndListenFuture(
+                GameMsgType.LEAVE_ROOM,
+                GameRoomProto.LeaveRequest.newBuilder()
+                    .setRoomId(roomDetail.getId())
+                    .setPlayerId(playerId)
+                    .build()
+            );
+        });
+        
+        leaveRoomButton.setOnSuccess(obj -> {
+            CommonProto.BaseResponse resp = (CommonProto.BaseResponse) obj;
+            if (resp != null && resp.getCode() == 0) {
+                // 离开房间成功，返回大厅
+                ViewManager.getInstance().show(ViewEnum.LOBBY);
+            } else {
+                MessageUtil.showError("离开房间失败: " + (resp == null ? "未知错误" : resp.getMessage()));
+            }
+        });
+        
+        leaveRoomButton.setOnError(ex -> {
+            MessageUtil.showError("离开房间失败: " + ex.getMessage());
+        });
     }
 
     /**
-     * 发送离开房间消息
+     * 发送离开房间消息（用于窗口关闭时）
+     * 窗口关闭时使用异步发送，不等待响应，避免阻塞关闭
      */
     private void sendLeaveRoomMessage() {
-        if (roomDetail != null) {
+        if (roomDetail != null && UserInfoManager.getInstance().getPlayerId() != null) {
+            // 窗口关闭时，使用异步发送，不等待响应
             gameConnectionManager.send(GameMsgType.LEAVE_ROOM, GameRoomProto.LeaveRequest.newBuilder()
                     .setRoomId(roomDetail.getId())
                     .setPlayerId(UserInfoManager.getInstance().getPlayerId())
                     .build());
+            System.out.println("发送离开房间消息: RoomId=" + roomDetail.getId() + ", PlayerId=" + UserInfoManager.getInstance().getPlayerId());
         }
     }
 }
