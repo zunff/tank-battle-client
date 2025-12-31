@@ -87,17 +87,12 @@ public class LoginController extends ViewLifecycle {
                             gameConnectionManager.connect();
                         }
                         return gameConnectionManager.sendAndListenFuture(GameMsgType.LOGIN, AuthProto.LoginRequest.newBuilder().setToken(token).build());
-                    })
-                    .thenApply(resp -> {
-                        AuthProto.LoginResponse lr = ProtoBufUtil.parseRespBody(resp, AuthProto.LoginResponse.class);
-                        return new Object[]{resp, lr};
                     });
         });
 
-        asyncLoginButton.setOnSuccess(obj -> {
-            Object[] arr = (Object[]) obj;
-            CommonProto.BaseResponse resp = (CommonProto.BaseResponse) arr[0];
-            AuthProto.LoginResponse lr = (AuthProto.LoginResponse) arr[1];
+        asyncLoginButton.setOnSuccess(responseBo -> {
+            CommonProto.BaseResponse resp = responseBo.getResponse();
+            AuthProto.LoginResponse lr = (AuthProto.LoginResponse) responseBo.getPayload();
 
             if (resp != null && resp.getCode() == 0) {
                 messageLabel.setText("登录成功，" + lr.getPlayerName());

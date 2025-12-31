@@ -7,6 +7,7 @@ import com.zunf.tankbattleclient.manager.GameConnectionManager;
 import com.zunf.tankbattleclient.manager.UserInfoManager;
 import com.zunf.tankbattleclient.manager.ViewManager;
 import com.zunf.tankbattleclient.model.PlayerItem;
+import com.zunf.tankbattleclient.model.bo.ResponseBo;
 import com.zunf.tankbattleclient.protobuf.CommonProto;
 import com.zunf.tankbattleclient.protobuf.game.room.GameRoomProto;
 import com.zunf.tankbattleclient.ui.AsyncButton;
@@ -22,6 +23,7 @@ import javafx.scene.control.TextField;
 import java.util.function.Consumer;
 import java.util.concurrent.CompletableFuture;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 public class RoomController extends ViewLifecycle {
 
@@ -225,7 +227,7 @@ public class RoomController extends ViewLifecycle {
                 )
         ));
 
-        readyButton.setOnSuccess(obj -> handleReadySuccess((CommonProto.BaseResponse) obj));
+        readyButton.setOnSuccess(responseBo -> handleReadySuccess(responseBo.getResponse()));
         readyButton.setOnError(ex -> MessageUtil.showError("准备失败: " + ex.getMessage()));
     }
 
@@ -240,7 +242,7 @@ public class RoomController extends ViewLifecycle {
                 )
         ));
 
-        leaveRoomButton.setOnSuccess(obj -> handleLeaveRoomSuccess((CommonProto.BaseResponse) obj));
+        leaveRoomButton.setOnSuccess(responseBo -> handleLeaveRoomSuccess(responseBo.getResponse()));
         leaveRoomButton.setOnError(ex -> MessageUtil.showError("离开房间失败: " + ex.getMessage()));
     }
 
@@ -298,7 +300,7 @@ public class RoomController extends ViewLifecycle {
         return UserInfoManager.getInstance().getPlayerId();
     }
 
-    private CompletableFuture<?> createRoomAction(java.util.function.Supplier<CompletableFuture<?>> action) {
+    private CompletableFuture<ResponseBo> createRoomAction(Supplier<CompletableFuture<ResponseBo>> action) {
         if (!validateRoomDetail()) {
             MessageUtil.showError("房间数据异常");
             return CompletableFuture.completedFuture(null);

@@ -13,7 +13,8 @@ enum RoomStatus {
 enum UserStatus {
   LOBBY = 0;
   READY = 1;
-  GAMING = 2;
+  LOADED = 2;
+  GAMING = 3;
 }
 
 message CreateRequest {
@@ -81,6 +82,17 @@ message ReadyRequest {
 }
 
 message StartRequest {
+  int64 roomId = 1;
+  int64 playerId = 2;
+}
+
+message StartNotice {
+  int64 roomId = 1;
+  int64 matchId = 2;
+  repeated bytes mapData = 3;  // 使用 repeated bytes 来表示二维字节数组
+}
+
+message LoadedAck {
   int64 roomId = 1;
   int64 playerId = 2;
 }

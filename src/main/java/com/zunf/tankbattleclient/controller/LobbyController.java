@@ -7,6 +7,7 @@ import com.zunf.tankbattleclient.exception.ErrorCode;
 import com.zunf.tankbattleclient.manager.GameConnectionManager;
 import com.zunf.tankbattleclient.manager.UserInfoManager;
 import com.zunf.tankbattleclient.manager.ViewManager;
+import com.zunf.tankbattleclient.model.bo.CreateRoomBo;
 import com.zunf.tankbattleclient.protobuf.CommonProto;
 import com.zunf.tankbattleclient.protobuf.game.room.GameRoomProto;
 import com.zunf.tankbattleclient.ui.AsyncButton;
@@ -59,6 +60,8 @@ public class LobbyController extends ViewLifecycle {
     private ScheduledExecutorService scheduler;
     private ScheduledFuture<?> roomRefreshTask;
 
+    private CreateRoomBo createRoomBo = null;
+
     @Override
     public void onShow(Object data) {
         // 从缓存中获取用户名
@@ -100,7 +103,7 @@ public class LobbyController extends ViewLifecycle {
     private void initCreateRoomButton() {
         createRoomButton.setAction(() -> {
             // 创建房间弹窗
-            Dialog<RoomCreationData> dialog = new Dialog<>();
+            Dialog<CreateRoomBo> dialog = new Dialog<>();
             dialog.setTitle("创建房间");
 
             // 设置确认和取消按钮
@@ -142,41 +145,40 @@ public class LobbyController extends ViewLifecycle {
             // 转换结果
             dialog.setResultConverter(dialogButton -> {
                 if (dialogButton == createButtonType) {
-                    return new RoomCreationData(roomNameField.getText().trim(), maxPlayersComboBox.getValue());
+                    return new CreateRoomBo(roomNameField.getText().trim(), maxPlayersComboBox.getValue());
                 }
                 return null;
             });
 
             // 显示弹窗并等待用户响应
-            Optional<RoomCreationData> result = dialog.showAndWait();
+            Optional<CreateRoomBo> result = dialog.showAndWait();
 
             // 处理用户选择
             return result.map(data -> {
                 // 这里可以添加实际的创建房间逻辑
-                System.out.println("创建房间: " + data.roomName + ", 最大人数: " + data.maxPlayers);
+                System.out.println("创建房间: " + data.roomName() + ", 最大人数: " + data.maxPlayers());
                 return gameConnectionManager.sendAndListenFuture(GameMsgType.CREATE_ROOM, GameRoomProto.CreateRequest.newBuilder()
-                        .setName(data.roomName)
-                        .setMaxPlayers(data.maxPlayers)
+                        .setName(data.roomName())
+                        .setMaxPlayers(data.maxPlayers())
                         .setPlayerId(UserInfoManager.getInstance().getPlayerId())
                         .build())
                         .thenApply(resp -> {
-                            GameRoomProto.CreateResponse r = ProtoBufUtil.parseRespBody(resp, GameRoomProto.CreateResponse.parser());
                             // 保存房间创建数据，用于后续组装 GameRoomData
-                            return new Object[]{resp, r, data.roomName, data.maxPlayers};
+                            createRoomBo = result.get();
+                            return resp;
                         });
             }).orElseGet(() -> CompletableFuture.completedFuture(null));
         });
-        createRoomButton.setOnSuccess(obj -> {
-            Object[] arr = (Object[]) obj;
-            CommonProto.BaseResponse resp = (CommonProto.BaseResponse) arr[0];
-            GameRoomProto.CreateResponse r = (GameRoomProto.CreateResponse) arr[1];
+        createRoomButton.setOnSuccess(bo -> {
+            CommonProto.BaseResponse resp = bo.getResponse();
+            GameRoomProto.CreateResponse r = (GameRoomProto.CreateResponse) bo.getPayload();
             if (resp == null || resp.getCode() != ErrorCode.OK.getCode()) {
                 MessageUtil.showError("创建房间失败，请检查房间名称或网络连接");
                 return;
             }
             long roomId = r.getRoomId();
-            String roomName = (String) arr[2];
-            int maxPlayers = (Integer) arr[3];
+            String roomName = createRoomBo.roomName();
+            int maxPlayers = createRoomBo.maxPlayers();
             
             // 获取创建者信息
             Long creatorId = UserInfoManager.getInstance().getPlayerId();
@@ -209,18 +211,6 @@ public class LobbyController extends ViewLifecycle {
             MessageUtil.showError("创建房间失败，请检查网络连接或稍后再试");
         });
     }
-
-    // 房间创建数据类
-    private static class RoomCreationData {
-        private final String roomName;
-        private final int maxPlayers;
-
-        public RoomCreationData(String roomName, int maxPlayers) {
-            this.roomName = roomName;
-            this.maxPlayers = maxPlayers;
-        }
-    }
-
     private void initJoinRoomButton() {
         joinRoomButton.setAction(() -> {
             // 获取选中的房间
@@ -235,19 +225,11 @@ public class LobbyController extends ViewLifecycle {
                     GameRoomProto.JoinRequest.newBuilder()
                             .setRoomId(roomId)
                             .setPlayerId(UserInfoManager.getInstance().getPlayerId())
-                            .build())
-                    .thenApply(resp -> {
-                        GameRoomProto.GameRoomDetail r = ProtoBufUtil.parseRespBody(resp, GameRoomProto.GameRoomDetail.parser());
-                        return new Object[]{resp, r};
-                    });
+                            .build());
         });
-        joinRoomButton.setOnSuccess(obj -> {
-            if (obj == null) {
-                return;
-            }
-            Object[] arr = (Object[]) obj;
-            CommonProto.BaseResponse resp = (CommonProto.BaseResponse) arr[0];
-            GameRoomProto.GameRoomDetail r = (GameRoomProto.GameRoomDetail) arr[1];
+        joinRoomButton.setOnSuccess(responseBo -> {
+            CommonProto.BaseResponse resp = responseBo.getResponse();
+            GameRoomProto.GameRoomDetail r = (GameRoomProto.GameRoomDetail) responseBo.getPayload();
             if (resp == null || resp.getCode() != ErrorCode.OK.getCode()) {
                 MessageUtil.showError("加入房间失败" + resp.getCode());
                 return;
@@ -271,7 +253,8 @@ public class LobbyController extends ViewLifecycle {
     private void queryRooms() {
         gameConnectionManager.sendAndListenFuture(GameMsgType.PAGE_ROOM,
                 GameRoomProto.PageRequest.newBuilder().setPageNum(1).setPageSize(10).build()
-        ).thenAccept(resp -> {
+        ).thenAccept(responseBo -> {
+            CommonProto.BaseResponse resp = responseBo.getResponse();
             if (resp.getCode() != ErrorCode.OK.getCode()) {
                 throw new BusinessException(ErrorCode.of(resp.getCode()));
             }

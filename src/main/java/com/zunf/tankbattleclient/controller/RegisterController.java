@@ -1,8 +1,10 @@
 package com.zunf.tankbattleclient.controller;
 
 
+import cn.hutool.core.util.StrUtil;
 import com.zunf.tankbattleclient.enums.ViewEnum;
 import com.zunf.tankbattleclient.manager.ViewManager;
+import com.zunf.tankbattleclient.model.bo.ResponseBo;
 import com.zunf.tankbattleclient.protobuf.CommonProto;
 import com.zunf.tankbattleclient.protobuf.game.auth.AuthProto;
 import com.zunf.tankbattleclient.service.AuthService;
@@ -97,12 +99,18 @@ public class RegisterController {
                 return CompletableFuture.completedFuture(null);
             }
 
-            return CompletableFuture.supplyAsync(() -> authService.register(username, password, nickname, confirmPassword));
+            return CompletableFuture.supplyAsync(() -> authService.register(username, password, nickname, confirmPassword)
+            ).thenApply(token -> {
+                if (StrUtil.isBlank(token)) {
+                    return null;
+                } else {
+                    return new ResponseBo(CommonProto.BaseResponse.newBuilder().setCode(0).build());
+                }
+            });
         });
-        registerButton.setOnSuccess(obj -> {
-            Object[] arr = (Object[]) obj;
-            CommonProto.BaseResponse resp = (CommonProto.BaseResponse) arr[0];
-            AuthProto.LoginResponse lr = (AuthProto.LoginResponse) arr[1];
+        registerButton.setOnSuccess(responseBo -> {
+            CommonProto.BaseResponse resp = responseBo.getResponse();
+            AuthProto.LoginResponse lr = (AuthProto.LoginResponse) responseBo.getPayload();
 
             if (resp.getCode() == 0) {
                 messageLabel.setText("注册成功，=" + lr.getPlayerName());

@@ -1,5 +1,6 @@
 package com.zunf.tankbattleclient.manager;
 
+import cn.hutool.json.JSONUtil;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.MessageLite;
 import com.zunf.tankbattleclient.protobuf.CommonProto;
@@ -91,6 +92,7 @@ public class MsgCallbackEventManager {
         if (messageLite == null) {
             return;
         }
+        System.out.println("MsgCallbackEventManager 收到消息: msgType=" + msgType + ", message=" + JSONUtil.toJsonPrettyStr(messageLite));
 
         // 优化：只创建一个 Platform.runLater 任务，批量执行所有回调
         // 这样可以减少 JavaFX 应用线程的调度负担，并保证回调按顺序执行

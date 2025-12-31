@@ -1,6 +1,10 @@
 package com.zunf.tankbattleclient.manager;
 
 import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.MessageLite;
+import com.google.protobuf.Parser;
+import com.zunf.tankbattleclient.enums.GameMsgType;
+import com.zunf.tankbattleclient.model.bo.ResponseBo;
 import com.zunf.tankbattleclient.protobuf.CommonProto;
 import com.zunf.tankbattleclient.model.message.InboundMessage;
 
@@ -29,12 +33,12 @@ public class RequestCallbackEventManager {
         return INSTANCE;
     }
 
-    private final Map<Integer, Consumer<CommonProto.BaseResponse>> requestCallbacks = new ConcurrentHashMap<>();
+    private final Map<Integer, Consumer<ResponseBo>> requestCallbacks = new ConcurrentHashMap<>();
 
     /**
      * 监听请求响应
      */
-    public void listenRequest(int requestId, Consumer<CommonProto.BaseResponse> callback) {
+    public void listenRequest(int requestId, Consumer<ResponseBo> callback) {
         requestCallbacks.put(requestId, callback);
     }
 
@@ -54,13 +58,9 @@ public class RequestCallbackEventManager {
 
     /**
      * 收到消息时触发回调
-     * 因为是请求-响应式的，accept方法里需要baseResponse，没法像msgType一样，把baseResponse的body解析成对应的protobuf对象
-     * 所以需要accept方法里解析
-     * 通常搭配CompletableFuture.complete()跟thenApply()使用，complete的是messageExecutor线程池线程
-     * thenApply()就会在messageExecutor线程池线程里执行，所以这里可以解析baseResponse的body而不阻塞UI线程
      */
-    public void triggerCallback(int requestId, InboundMessage message) {
-        Consumer<CommonProto.BaseResponse> callback = requestCallbacks.get(requestId);
+    public void triggerCallback(int requestId, InboundMessage message, GameMsgType type) {
+        Consumer<ResponseBo> callback = requestCallbacks.get(requestId);
         if (callback == null) {
             return;
         }
@@ -75,10 +75,22 @@ public class RequestCallbackEventManager {
                 removeListener(requestId);
                 return;
             }
+            ResponseBo responseBo = new ResponseBo(baseResponse);
+            Parser<? extends MessageLite> parser = type.getParser();
+            if (parser != null) {
+                try {
+                    MessageLite messageLite = parser.parseFrom(baseResponse.getPayloadBytes());
+                    responseBo.setPayload(messageLite);
+                } catch (InvalidProtocolBufferException e) {
+                    System.out.println("RequestCallbackEventManager 解析消息体失败 " + e.getMessage());
+                    removeListener(requestId);
+                    return;
+                }
+            }
 
             // 执行回调，添加异常处理
             try {
-                callback.accept(baseResponse);
+                callback.accept(responseBo);
             } catch (Exception e) {
                 System.err.println("RequestCallbackEventManager 回调执行异常: requestId=" + requestId + ", error=" + e.getMessage());
                 e.printStackTrace();

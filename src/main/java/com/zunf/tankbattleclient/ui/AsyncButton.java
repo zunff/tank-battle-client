@@ -3,6 +3,7 @@ package com.zunf.tankbattleclient.ui;
 
 import com.zunf.tankbattleclient.exception.BusinessException;
 import com.zunf.tankbattleclient.exception.ErrorCode;
+import com.zunf.tankbattleclient.model.bo.ResponseBo;
 import javafx.application.Platform;
 import javafx.beans.property.*;
 import javafx.scene.control.Button;
@@ -25,9 +26,9 @@ public class AsyncButton extends Button {
     private final StringProperty loadingText = new SimpleStringProperty("");
     private final BooleanProperty showEllipsis = new SimpleBooleanProperty(true);
 
-    private final ObjectProperty<Supplier<CompletableFuture<?>>> action = new SimpleObjectProperty<>();
+    private final ObjectProperty<Supplier<CompletableFuture<ResponseBo>>> action = new SimpleObjectProperty<>();
 
-    private final ObjectProperty<Consumer<Object>> onSuccess = new SimpleObjectProperty<>();
+    private final ObjectProperty<Consumer<ResponseBo>> onSuccess = new SimpleObjectProperty<>();
     private final ObjectProperty<Consumer<BusinessException>> onError = new SimpleObjectProperty<>();
 
     private String normalText;
@@ -43,7 +44,7 @@ public class AsyncButton extends Button {
     public void runOnce() {
         if (running.get()) return;
 
-        Supplier<CompletableFuture<?>> a = action.get();
+        Supplier<CompletableFuture<ResponseBo>> a = action.get();
         Objects.requireNonNull(a, "AsyncButton.action must be set");
 
         running.set(true);
@@ -55,7 +56,7 @@ public class AsyncButton extends Button {
         if (isShowEllipsis()) newText += "...";
         setText(newText);
 
-        final CompletableFuture<?> f;
+        final CompletableFuture<ResponseBo> f;
         try {
             f = a.get();
         } catch (Throwable t) {
@@ -72,7 +73,7 @@ public class AsyncButton extends Button {
             try {
                 if (err == null) {
                     if (val != null) {
-                        Consumer<Object> ok = onSuccess.get();
+                        Consumer<ResponseBo> ok = onSuccess.get();
                         if (ok != null) ok.accept(val);
                     }
                 } else {
@@ -127,13 +128,13 @@ public class AsyncButton extends Button {
     public void setShowEllipsis(boolean v) { showEllipsis.set(v); }
     public BooleanProperty showEllipsisProperty() { return showEllipsis; }
 
-    public Supplier<CompletableFuture<?>> getAction() { return action.get(); }
-    public void setAction(Supplier<CompletableFuture<?>> a) { action.set(a); }
-    public ObjectProperty<Supplier<CompletableFuture<?>>> actionProperty() { return action; }
+    public Supplier<CompletableFuture<ResponseBo>> getAction() { return action.get(); }
+    public void setAction(Supplier<CompletableFuture<ResponseBo>> a) { action.set(a); }
+    public ObjectProperty<Supplier<CompletableFuture<ResponseBo>>> actionProperty() { return action; }
 
-    public Consumer<Object> getOnSuccess() { return onSuccess.get(); }
-    public void setOnSuccess(Consumer<Object> c) { onSuccess.set(c); }
-    public ObjectProperty<Consumer<Object>> onSuccessProperty() { return onSuccess; }
+    public Consumer<ResponseBo> getOnSuccess() { return onSuccess.get(); }
+    public void setOnSuccess(Consumer<ResponseBo> c) { onSuccess.set(c); }
+    public ObjectProperty<Consumer<ResponseBo>> onSuccessProperty() { return onSuccess; }
 
     public Consumer<BusinessException> getOnError() { return onError.get(); }
     public void setOnError(Consumer<BusinessException> c) { onError.set(c); }
