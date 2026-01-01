@@ -91,22 +91,17 @@ public class LoginController extends ViewLifecycle {
         });
 
         asyncLoginButton.setOnSuccess(responseBo -> {
-            CommonProto.BaseResponse resp = responseBo.getResponse();
             AuthProto.LoginResponse lr = (AuthProto.LoginResponse) responseBo.getPayload();
 
-            if (resp != null && resp.getCode() == 0) {
-                messageLabel.setText("登录成功，" + lr.getPlayerName());
-                // 存储用户信息到缓存
-                UserInfoManager.getInstance().setUserinfo(
-                    usernameField.getText(), 
+            messageLabel.setText("登录成功，" + lr.getPlayerName());
+            // 存储用户信息到缓存
+            UserInfoManager.getInstance().setUserinfo(
+                    usernameField.getText(),
                     lr.getPlayerName(),
                     lr.getPlayerId()
-                );
-                // 跳转到大厅界面
-                ViewManager.getInstance().show(ViewEnum.LOBBY);
-            } else {
-                messageLabel.setText("登录失败：" + (resp == null ? "未知错误" : resp.getCode()));
-            }
+            );
+            // 跳转到大厅界面
+            ViewManager.getInstance().show(ViewEnum.LOBBY);
         });
 
         asyncLoginButton.setOnError(ex -> {

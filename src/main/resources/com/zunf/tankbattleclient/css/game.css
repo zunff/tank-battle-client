@@ -1,0 +1,46 @@
+/* 游戏界面样式 */
+
+/* 菜单框样式 */
+.menu-box {
+    -fx-background-color: #34495e;
+    -fx-background-radius: 12px;
+    -fx-border-color: #3498db;
+    -fx-border-width: 2px;
+    -fx-border-radius: 12px;
+    -fx-padding: 30px 50px;
+    -fx-effect: dropshadow(gaussian, rgba(52, 152, 219, 0.4), 20, 0, 0, 8);
+    -fx-pref-width: 200px;
+    -fx-pref-height: 120px;
+    -fx-min-width: 200px;
+    -fx-min-height: 120px;
+    -fx-max-width: 200px;
+    -fx-max-height: 120px;
+}
+
+/* 菜单标题样式 */
+.menu-title {
+    -fx-font-size: 24px;
+    -fx-text-fill: #ecf0f1;
+    -fx-font-weight: bold;
+    -fx-padding: 0px 0px 10px 0px;
+}
+
+/* 菜单项文字样式 */
+.menu-item {
+    -fx-font-size: 16px;
+    -fx-text-fill: #ecf0f1;
+    -fx-font-weight: normal;
+    -fx-cursor: hand;
+    -fx-padding: 6px 0px 4px 0px;
+    -fx-background-color: transparent;
+    -fx-border-width: 0 0 2 0;
+    -fx-border-color: #ecf0f1;
+    -fx-border-style: solid;
+}
+
+.menu-item:hover {
+    -fx-text-fill: #3498db;
+    -fx-border-color: #3498db;
+    -fx-effect: dropshadow(gaussian, rgba(52, 152, 219, 0.6), 8, 0, 0, 2);
+}
+

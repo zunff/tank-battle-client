@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.canvas.Canvas?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.Label?>
+
+<BorderPane fx:id="gameContainer" prefHeight="800.0" prefWidth="1000.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.zunf.tankbattleclient.controller.GameController">
+   <center>
+      <StackPane>
+         <Canvas fx:id="gameCanvas" height="800.0" width="1000.0" />
+         <!-- 菜单框 -->
+         <VBox fx:id="menuBox" alignment="CENTER" spacing="15.0" styleClass="menu-box" visible="false" managed="false">
+            <Label text="菜单" styleClass="menu-title" />
+            <Label fx:id="leaveGameLabel" text="离开游戏" styleClass="menu-item" onMouseClicked="#onLeaveGameClick" />
+         </VBox>
+      </StackPane>
+   </center>
+</BorderPane>
+
+
+

@@ -1,6 +1,7 @@
 package com.zunf.tankbattleclient.manager;
 
 import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.Message;
 import com.google.protobuf.MessageLite;
 import com.google.protobuf.Parser;
 import com.zunf.tankbattleclient.enums.GameMsgType;
@@ -71,7 +72,8 @@ public class RequestCallbackEventManager {
             try {
                 baseResponse = CommonProto.BaseResponse.parseFrom(message.getBody());
             } catch (InvalidProtocolBufferException e) {
-                System.err.println("RequestCallbackEventManager 解析消息失败: requestId=" + requestId + ", error=" + e.getMessage());
+                System.err.println(
+                        "RequestCallbackEventManager 解析消息失败: requestId=" + requestId + ", error=" + e.getMessage());
                 removeListener(requestId);
                 return;
             }
@@ -92,7 +94,8 @@ public class RequestCallbackEventManager {
             try {
                 callback.accept(responseBo);
             } catch (Exception e) {
-                System.err.println("RequestCallbackEventManager 回调执行异常: requestId=" + requestId + ", error=" + e.getMessage());
+                System.err.println(
+                        "RequestCallbackEventManager 回调执行异常: requestId=" + requestId + ", error=" + e.getMessage());
                 e.printStackTrace();
             }
         } finally {

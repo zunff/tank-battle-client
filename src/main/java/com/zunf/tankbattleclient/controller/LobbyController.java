@@ -228,12 +228,7 @@ public class LobbyController extends ViewLifecycle {
                             .build());
         });
         joinRoomButton.setOnSuccess(responseBo -> {
-            CommonProto.BaseResponse resp = responseBo.getResponse();
             GameRoomProto.GameRoomDetail r = (GameRoomProto.GameRoomDetail) responseBo.getPayload();
-            if (resp == null || resp.getCode() != ErrorCode.OK.getCode()) {
-                MessageUtil.showError("加入房间失败" + resp.getCode());
-                return;
-            }
             ViewManager.getInstance().show(ViewEnum.ROOM, r);
         });
         joinRoomButton.setOnError(ex -> {

@@ -72,13 +72,22 @@ public class AsyncButton extends Button {
         f.whenComplete((val, err) -> Platform.runLater(() -> {
             try {
                 if (err == null) {
-                    if (val != null) {
+                    if (val != null && val.getResponse().getCode() == ErrorCode.OK.getCode()) {
                         Consumer<ResponseBo> ok = onSuccess.get();
-                        if (ok != null) ok.accept(val);
+                        if (ok != null) {
+                            ok.accept(val);
+                        }
+                    } else if (val != null) {
+                        Consumer<BusinessException> bad = onError.get();
+                        if (bad != null) {
+                            bad.accept(new BusinessException(ErrorCode.of(val.getResponse().getCode())));
+                        }
                     }
                 } else {
                     Consumer<BusinessException> bad = onError.get();
-                    if (bad != null) bad.accept(wrap(err));
+                    if (bad != null) {
+                        bad.accept(wrap(err));
+                    }
                 }
             } finally {
                 // 如果按钮已被永久禁用，不再恢复状态

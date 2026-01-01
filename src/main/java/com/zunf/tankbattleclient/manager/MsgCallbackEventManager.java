@@ -1,6 +1,5 @@
 package com.zunf.tankbattleclient.manager;
 
-import cn.hutool.json.JSONUtil;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.MessageLite;
 import com.zunf.tankbattleclient.protobuf.CommonProto;
@@ -50,7 +49,8 @@ public class MsgCallbackEventManager {
         Set<Consumer<MessageLite>> set = callbackSets.computeIfAbsent(msgType, k -> ConcurrentHashMap.newKeySet());
         if (set.add(callback)) {
             // 只有当 callback 是新添加的时候，才添加到 List 中
-            CopyOnWriteArrayList<Consumer<MessageLite>> list = responseCallbacks.computeIfAbsent(msgType, k -> new CopyOnWriteArrayList<>());
+            CopyOnWriteArrayList<Consumer<MessageLite>> list = responseCallbacks.computeIfAbsent(msgType,
+                    k -> new CopyOnWriteArrayList<>());
             list.add(callback);
         }
     }
@@ -92,20 +92,20 @@ public class MsgCallbackEventManager {
         if (messageLite == null) {
             return;
         }
-        System.out.println("MsgCallbackEventManager 收到消息: msgType=" + msgType + ", message=" + JSONUtil.toJsonPrettyStr(messageLite));
 
         // 优化：只创建一个 Platform.runLater 任务，批量执行所有回调
         // 这样可以减少 JavaFX 应用线程的调度负担，并保证回调按顺序执行
         final MessageLite finalMessage = messageLite; // 需要 final 或 effectively final
         final List<Consumer<MessageLite>> callbacksCopy = new CopyOnWriteArrayList<>(callbacks); // 创建快照，避免并发修改
-        
+
         Platform.runLater(() -> {
             for (Consumer<MessageLite> callback : callbacksCopy) {
                 try {
                     callback.accept(finalMessage);
                 } catch (Exception e) {
                     // 单个回调异常不应影响其他回调的执行
-                    System.err.println("MsgCallbackEventManager 回调执行异常: msgType=" + msgType + ", error=" + e.getMessage());
+                    System.err.println(
+                            "MsgCallbackEventManager 回调执行异常: msgType=" + msgType + ", error=" + e.getMessage());
                     e.printStackTrace();
                 }
             }

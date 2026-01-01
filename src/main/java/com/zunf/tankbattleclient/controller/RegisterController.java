@@ -112,12 +112,8 @@ public class RegisterController {
             CommonProto.BaseResponse resp = responseBo.getResponse();
             AuthProto.LoginResponse lr = (AuthProto.LoginResponse) responseBo.getPayload();
 
-            if (resp.getCode() == 0) {
-                messageLabel.setText("注册成功，=" + lr.getPlayerName());
-                ViewManager.getInstance().show(ViewEnum.LOGIN);
-            } else {
-                messageLabel.setText("注册失败：" + resp.getCode());
-            }
+            messageLabel.setText("注册成功，=" + lr.getPlayerName());
+            ViewManager.getInstance().show(ViewEnum.LOGIN);
         });
         registerButton.setOnError(e -> {
             messageLabel.setText("注册失败：" + e.getCode());

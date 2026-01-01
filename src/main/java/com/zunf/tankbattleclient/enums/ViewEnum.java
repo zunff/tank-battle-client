@@ -8,7 +8,8 @@ public enum ViewEnum {
     LOGIN("login-view.fxml", "坦克大战 - 登录", 350, 400),
     REGISTER("register-view.fxml", "坦克大战 - 注册", 350, 400),
     LOBBY("lobby-view.fxml", "坦克大战 - 大厅", 800, 600),
-    ROOM("room-view.fxml", "坦克大战 - 房间", 900, 600);
+    ROOM("room-view.fxml", "坦克大战 - 房间", 900, 600),
+    GAME("game-view.fxml", "坦克大战 - 游戏", 800, 800);
 
     private final String fxmlFileName;
     private final String title;
