@@ -1,6 +1,9 @@
 package com.zunf.tankbattleclient.controller;
 
+import com.google.protobuf.ByteString;
 import com.zunf.tankbattleclient.TankBattleApplication;
+import com.zunf.tankbattleclient.enums.MapIndex;
+import com.zunf.tankbattleclient.enums.TankDirection;
 import com.zunf.tankbattleclient.enums.ViewEnum;
 import com.zunf.tankbattleclient.manager.ViewManager;
 import com.zunf.tankbattleclient.protobuf.game.room.GameRoomProto;
@@ -37,20 +40,6 @@ public class GameController extends ViewLifecycle {
     private GameRoomProto.StartNotice gameData;
     private ChangeListener<Number> canvasSizeListener;
     private javafx.event.EventHandler<KeyEvent> escKeyHandler;
-
-    // 地图元素编码
-    private static final byte EMPTY = 0; // 空地
-    private static final byte WALL = 1; // 不可破坏墙
-    private static final byte BRICK = 2; // 可破坏砖块
-    private static final byte SPAWN = 3; // 出生点
-
-    // 坦克方向枚举
-    private enum TankDirection {
-        UP, // 上
-        DOWN, // 下
-        LEFT, // 左
-        RIGHT // 右
-    }
 
     @Override
     public void onShow(Object data) {
@@ -133,7 +122,7 @@ public class GameController extends ViewLifecycle {
 
         // 渲染每个格子
         for (int row = 0; row < mapHeight; row++) {
-            com.google.protobuf.ByteString rowData = gameData.getMapData(row);
+            ByteString rowData = gameData.getMapData(row);
             byte[] rowBytes = rowData.toByteArray();
 
             for (int col = 0; col < rowBytes.length && col < mapWidth; col++) {
@@ -142,14 +131,14 @@ public class GameController extends ViewLifecycle {
                 double y = row * cellHeight;
 
                 // 根据单元格类型选择颜色
-                Color cellColor = getCellColor(cellType);
+                Color cellColor = getCellColor(MapIndex.of(cellType));
 
                 // 绘制单元格
                 gc.setFill(cellColor);
                 gc.fillRect(x, y, cellWidth, cellHeight);
 
                 // 绘制边框（只在非空地上绘制，避免视觉混乱）
-                if (cellType != EMPTY) {
+                if (cellType != MapIndex.EMPTY.getCode()) {
                     gc.setStroke(Color.GRAY);
                     gc.setLineWidth(0.5);
                     gc.strokeRect(x, y, cellWidth, cellHeight);
@@ -164,12 +153,13 @@ public class GameController extends ViewLifecycle {
     /**
      * 根据单元格类型获取颜色
      */
-    private Color getCellColor(byte cellType) {
+    private Color getCellColor(MapIndex cellType) {
         return switch (cellType) {
-            case EMPTY -> Color.LIGHTGRAY; // 空地 - 浅灰色
-            case WALL -> Color.DARKGRAY; // 不可破坏墙 - 深灰色
-            case BRICK -> Color.SADDLEBROWN; // 可破坏砖块 - 棕色
-            case SPAWN -> Color.LIGHTGREEN; // 出生点 - 浅绿色
+            case MapIndex.EMPTY -> Color.LIGHTGRAY; // 空地 - 浅灰色
+            case MapIndex.WALL -> Color.DARKGRAY; // 不可破坏墙 - 深灰色
+            case MapIndex.BRICK -> Color.SADDLEBROWN; // 可破坏砖块 - 棕色
+            case MapIndex.SPAWN -> Color.LIGHTGREEN; // 出生点 - 浅绿色
+            case MapIndex.DESTROYED_WALL -> Color.LIGHTGRAY;
             default -> Color.WHITE; // 未知类型 - 白色
         };
     }
@@ -183,7 +173,7 @@ public class GameController extends ViewLifecycle {
         }
 
         // 获取出生点字节数组 [x, y]
-        com.google.protobuf.ByteString spawnPointBytes = gameData.getSpawnPoint();
+        ByteString spawnPointBytes = gameData.getSpawnPoint();
 
         // 检查是否有出生点数据
         if (spawnPointBytes == null || spawnPointBytes.isEmpty()) {
