@@ -376,8 +376,8 @@ public class GameController extends ViewLifecycle {
         // 更新坦克状态
         for (MatchProto.Tank tank : tick.getTanksList()) {
             long playerId = tank.getPlayerId();
-            int x = tank.getX();
-            int y = tank.getY();
+            double x = tank.getX();
+            double y = tank.getY();
             Direction direction = Direction.values()[tank.getDirection()];
 
             TankState state = tanks.computeIfAbsent(playerId, k -> new TankState());
@@ -409,8 +409,8 @@ public class GameController extends ViewLifecycle {
         Map<String, BulletState> newBullets = new HashMap<>();
         for (MatchProto.Bullet bullet : tick.getBulletsList()) {
             String bulletId = bullet.getPlayerId() + "_" + bullet.getBulletId();
-            int x = bullet.getX();
-            int y = bullet.getY();
+            double x = bullet.getX();
+            double y = bullet.getY();
             Direction direction = Direction.values()[bullet.getDirection()];
 
             // 获取已存在的子弹状态，如果不存在则是新增的
