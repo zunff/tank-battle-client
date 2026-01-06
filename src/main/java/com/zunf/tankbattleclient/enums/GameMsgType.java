@@ -3,6 +3,7 @@ package com.zunf.tankbattleclient.enums;
 import com.google.protobuf.MessageLite;
 import com.google.protobuf.Parser;
 import com.zunf.tankbattleclient.protobuf.game.auth.AuthProto;
+import com.zunf.tankbattleclient.protobuf.game.match.MatchProto;
 import com.zunf.tankbattleclient.protobuf.game.room.GameRoomProto;
 
 import java.util.Arrays;
@@ -20,6 +21,8 @@ public enum GameMsgType {
     START_GAME(9),
     LOADED_ACK(10),
 
+    TANK_MOVE(11),
+    TANK_SHOOT(12),
 
     // server -> client
     PONG(10001),
@@ -27,6 +30,7 @@ public enum GameMsgType {
     PLAYER_LEAVE_ROOM(10003, GameRoomProto.PlayerInfo.parser()),
     PLAYER_READY(10004, GameRoomProto.PlayerInfo.parser()),
     GAME_STARTED(10005, GameRoomProto.StartNotice.parser()),
+    GAME_TICK(10006, MatchProto.Tick.parser()),
 
     // common
     ERROR(0),

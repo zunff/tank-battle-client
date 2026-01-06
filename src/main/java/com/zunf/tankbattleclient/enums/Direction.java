@@ -1,6 +1,6 @@
 package com.zunf.tankbattleclient.enums;
 
-public enum TankDirection {
+public enum Direction {
     UP(0), // 上
     DOWN(1), // 下
     LEFT(2), // 左
@@ -8,7 +8,7 @@ public enum TankDirection {
 
     private int code;
 
-    TankDirection(int code) {
+    Direction(int code) {
         this.code = code;
     }
 }

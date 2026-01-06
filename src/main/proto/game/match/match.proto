@@ -1,0 +1,42 @@
+syntax = "proto3";
+package game.match;
+
+option java_package = "com.zunf.tankbattleclient.protobuf.game.match";
+option java_outer_classname = "MatchProto";
+
+message OpRequest {
+  int64 playerId = 1;
+  int64 matchId = 2;
+  OpParams opParams = 3;
+}
+
+message OpParams {
+  int32 tankDirection = 1;
+}
+
+// tick 数据 start
+message Tick {
+  int64 matchId = 1;
+  int64 tickTimeStamp = 2;
+  repeated Tank tanks = 3;
+  repeated Bullet bullets = 4;
+  repeated bytes mapData = 5;  // 使用 repeated bytes 来表示二维字节数组
+  bool isGameOver = 6;
+}
+
+message Tank {
+  int64 playerId = 1;
+  int32 x = 2;
+  int32 y = 3;
+  int32 direction = 4;
+}
+
+message Bullet {
+  int64 playerId = 1;
+  int64 bulletId = 2;
+  int32 x = 3;
+  int32 y = 4;
+  int32 direction = 5;
+}
+
+// tick 数据 end
