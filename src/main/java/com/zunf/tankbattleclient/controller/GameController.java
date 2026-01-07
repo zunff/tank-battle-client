@@ -32,8 +32,14 @@ import javafx.scene.paint.Color;
 import javafx.scene.transform.Scale;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
+import javafx.animation.Animation;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.util.Duration;
 
 /**
  * 游戏界面控制器
@@ -56,8 +62,13 @@ public class GameController extends ViewLifecycle {
     private ChangeListener<Number> canvasSizeListener;
     private javafx.event.EventHandler<KeyEvent> escKeyHandler;
     private javafx.event.EventHandler<KeyEvent> gameKeyHandler;
+    private javafx.event.EventHandler<KeyEvent> gameKeyReleasedHandler;
     private boolean adjustingAspectRatio = false; // 防止循环调整的标志
     private Consumer<com.google.protobuf.MessageLite> tickListener; // Tick消息监听器
+
+    // 按键状态跟踪（用于长按检测）
+    private final Set<KeyCode> pressedKeys = new HashSet<>();
+    private javafx.animation.Timeline keyRepeatTimeline;
 
     // 游戏状态
     private long matchId;
@@ -66,12 +77,14 @@ public class GameController extends ViewLifecycle {
     private boolean isFirstTick = true;
     private AnimationTimer animationTimer;
 
+    // 地图状态（用于检测砖块摧毁）
+    private byte[][] previousMapData = null; // 上一帧的地图数据
+    private Map<String, Long> destroyedBrickAnimations = new HashMap<>(); // 正在播放摧毁动画的砖块位置 -> 动画开始时间
+
     // 地图常量
     private static final int MAP_SIZE = 32; // 地图大小 32x32
     private static final int CELL_SIZE = 32; // 每个格子固定32px
     private static final int CANVAS_SIZE = MAP_SIZE * CELL_SIZE; // Canvas大小 1024x1024
-
-
 
     @Override
     public void onShow(Object data) {
@@ -84,6 +97,8 @@ public class GameController extends ViewLifecycle {
             setupWindowAspectRatio();
             // 绑定Canvas大小到容器
             bindCanvasSize();
+            // 初始化previousMapData
+            initializePreviousMapData();
             renderMap();
             // 初始化ESC键监听
             initEscKeyListener();
@@ -114,6 +129,8 @@ public class GameController extends ViewLifecycle {
         // 清理状态
         tanks.clear();
         bullets.clear();
+        destroyedBrickAnimations.clear();
+        previousMapData = null;
         gameData = null;
         isFirstTick = true;
     }
@@ -183,7 +200,7 @@ public class GameController extends ViewLifecycle {
         };
         gameContainer.widthProperty().addListener(canvasSizeListener);
         gameContainer.heightProperty().addListener(canvasSizeListener);
-        
+
         // 初始设置缩放
         updateCanvasScale(scale);
     }
@@ -219,11 +236,11 @@ public class GameController extends ViewLifecycle {
             // Canvas缩放后的实际大小
             double scaledWidth = CANVAS_SIZE * scaleValue;
             double scaledHeight = CANVAS_SIZE * scaleValue;
-            
+
             // 计算偏移量使Canvas居中
             double offsetX = (containerWidth - scaledWidth) / 2;
             double offsetY = (containerHeight - scaledHeight) / 2;
-            
+
             gameCanvas.setLayoutX(offsetX);
             gameCanvas.setLayoutY(offsetY);
         }
@@ -253,7 +270,6 @@ public class GameController extends ViewLifecycle {
             default -> Color.WHITE; // 未知类型 - 白色
         };
     }
-
 
     /**
      * 初始化ESC键监听，用于显示/隐藏离开游戏按钮
@@ -379,16 +395,55 @@ public class GameController extends ViewLifecycle {
             double x = tank.getX();
             double y = tank.getY();
             Direction direction = Direction.values()[tank.getDirection()];
+            int life = tank.getLife();
 
             TankState state = tanks.computeIfAbsent(playerId, k -> new TankState());
-            
+
+            // 检测方向变化（向左或向右转向）
+            Direction oldDirection = state.getDirection();
+            boolean directionChangedToLeftOrRight = false;
+            if (!isFirstTick && oldDirection != null && direction != oldDirection) {
+                // 方向变化，且新方向是向左或向右
+                if (direction == Direction.LEFT || direction == Direction.RIGHT) {
+                    directionChangedToLeftOrRight = true;
+                }
+            }
+
+            // 检测血量变化，触发受击动画
+            boolean isHitThisTick = false;
+            if (!isFirstTick && state.getLife() > life) {
+                isHitThisTick = true;
+                state.setHit(true);
+                state.setHitAnimationStartTime(System.currentTimeMillis());
+                state.setPreviousLife(state.getLife());
+            }
+
+            // 如果满足显示血条的条件（受击或向左/向右转向），显示血条3秒
+            if (isHitThisTick || directionChangedToLeftOrRight) {
+                state.setShowHealthBar(true);
+                state.setHealthBarShowStartTime(System.currentTimeMillis());
+            }
+
+            // 更新血量
+            int oldLife = state.getLife();
+            state.setLife(life);
+            state.setMaxLife(100); // 最大血量为100
+
+            // 如果血量变化，初始化previousLife用于动画
+            if (isFirstTick) {
+                state.setPreviousLife(life);
+            } else if (oldLife != life && state.getPreviousLife() == oldLife) {
+                // 血量变化时，如果previousLife还是旧值，保持当前值让动画平滑过渡
+                // 动画会在updateAnimations中处理
+            }
 
             if (isFirstTick) {
-                // 第一个 tick直接设置位置
+                // 第一个 tick直接设置位置和血量
                 state.setCurrentX(x);
                 state.setCurrentY(y);
                 state.setTargetX(x);
                 state.setTargetY(y);
+                state.setPreviousLife(life);
             } else {
                 // 后续 tick检查是否需要动画
                 if (state.getCurrentX() != x || state.getCurrentY() != y) {
@@ -401,9 +456,8 @@ public class GameController extends ViewLifecycle {
         }
 
         // 移除不存在的坦克
-        tanks.entrySet().removeIf(entry -> 
-            tick.getTanksList().stream().noneMatch(t -> t.getPlayerId() == entry.getKey())
-        );
+        tanks.entrySet()
+                .removeIf(entry -> tick.getTanksList().stream().noneMatch(t -> t.getPlayerId() == entry.getKey()));
 
         // 更新子弹状态
         Map<String, BulletState> newBullets = new HashMap<>();
@@ -449,10 +503,92 @@ public class GameController extends ViewLifecycle {
 
         // 更新地图数据（如果有）
         if (tick.getMapDataCount() > 0) {
-            // 可以更新地图数据，这里暂时不处理
+            updateMapData(tick.getMapDataList());
+        } else if (isFirstTick && gameData != null && gameData.getMapDataCount() > 0) {
+            // 第一个tick如果没有地图数据，使用初始地图数据
+            initializePreviousMapData();
         }
 
         isFirstTick = false;
+    }
+
+    /**
+     * 初始化previousMapData（从gameData）
+     */
+    private void initializePreviousMapData() {
+        if (gameData == null || gameData.getMapDataCount() == 0) {
+            return;
+        }
+
+        int mapHeight = gameData.getMapDataCount();
+        int mapWidth = gameData.getMapData(0).size();
+        previousMapData = new byte[mapHeight][mapWidth];
+
+        for (int row = 0; row < mapHeight && row < MAP_SIZE; row++) {
+            ByteString rowData = gameData.getMapData(row);
+            byte[] rowBytes = rowData.toByteArray();
+            for (int col = 0; col < rowBytes.length && col < mapWidth && col < MAP_SIZE; col++) {
+                previousMapData[row][col] = rowBytes[col];
+            }
+        }
+    }
+
+    /**
+     * 更新地图数据，检测新的已摧毁砖块
+     */
+    private void updateMapData(java.util.List<ByteString> mapDataList) {
+        if (mapDataList == null || mapDataList.isEmpty()) {
+            return;
+        }
+
+        int mapHeight = mapDataList.size();
+        if (mapHeight == 0) {
+            return;
+        }
+
+        int mapWidth = mapDataList.get(0).size();
+        byte[][] currentMapData = new byte[mapHeight][mapWidth];
+
+        // 解析当前地图数据
+        for (int row = 0; row < mapHeight && row < MAP_SIZE; row++) {
+            ByteString rowData = mapDataList.get(row);
+            byte[] rowBytes = rowData.toByteArray();
+            for (int col = 0; col < rowBytes.length && col < mapWidth && col < MAP_SIZE; col++) {
+                currentMapData[row][col] = rowBytes[col];
+            }
+        }
+
+        // 检测新的已摧毁砖块
+        if (previousMapData != null && !isFirstTick) {
+            for (int row = 0; row < mapHeight && row < MAP_SIZE; row++) {
+                for (int col = 0; col < mapWidth && col < MAP_SIZE; col++) {
+                    byte previousType = previousMapData[row][col];
+                    byte currentType = currentMapData[row][col];
+
+                    // 如果之前是可破坏墙(BRICK)，现在是已破坏墙(DESTROYED_WALL)或空地(EMPTY)，触发摧毁动画
+                    if (previousType == MapIndex.BRICK.getCode() &&
+                            (currentType == MapIndex.DESTROYED_WALL.getCode() ||
+                                    currentType == MapIndex.EMPTY.getCode())) {
+                        String key = row + "_" + col;
+                        destroyedBrickAnimations.put(key, System.currentTimeMillis());
+                    }
+                }
+            }
+        }
+
+        // 更新gameData中的地图数据
+        if (gameData != null) {
+            // 创建新的StartNotice.Builder来更新地图数据
+            GameRoomProto.StartNotice.Builder builder = gameData.toBuilder();
+            builder.clearMapData();
+            for (ByteString rowData : mapDataList) {
+                builder.addMapData(rowData);
+            }
+            gameData = builder.build();
+        }
+
+        // 保存当前地图数据作为下一帧的previousMapData
+        previousMapData = currentMapData;
     }
 
     /**
@@ -483,12 +619,39 @@ public class GameController extends ViewLifecycle {
      * 更新动画状态
      */
     private void updateAnimations() {
-        final double ANIMATION_SPEED = 5.0; // 每帧移动的像素数
-
         // 更新坦克动画
         for (TankState state : tanks.values()) {
             if (state.isAnimating()) {
                 handlerAnimationState(state, GameConstants.TANK_ANIMATION_SPEED);
+            }
+
+            // 更新受击动画
+            if (state.isHit()) {
+                long elapsed = System.currentTimeMillis() - state.getHitAnimationStartTime();
+                if (elapsed > 300) { // 受击动画持续300ms
+                    state.setHit(false);
+                }
+            }
+
+            // 更新血条显示状态（3秒后隐藏）
+            if (state.isShowHealthBar()) {
+                long elapsed = System.currentTimeMillis() - state.getHealthBarShowStartTime();
+                if (elapsed > 500) { // 血条显示时间
+                    state.setShowHealthBar(false);
+                }
+            }
+
+            // 更新血条动画（平滑变化）
+            double currentDisplayLife = state.getPreviousLife();
+            double targetLife = state.getLife();
+            double diff = targetLife - currentDisplayLife;
+
+            if (Math.abs(diff) > 0.1) {
+                // 平滑变化（增加或减少）
+                state.setPreviousLife(currentDisplayLife + diff * 0.1);
+            } else {
+                // 接近目标值，直接设置
+                state.setPreviousLife(targetLife);
             }
         }
 
@@ -498,6 +661,11 @@ public class GameController extends ViewLifecycle {
                 handlerAnimationState(state, GameConstants.BULLET_ANIMATION_SPEED);
             }
         }
+
+        // 更新砖块摧毁动画（移除过期的动画）
+        long currentTime = System.currentTimeMillis();
+        destroyedBrickAnimations.entrySet().removeIf(entry -> currentTime - entry.getValue() > 500 // 动画持续500ms
+        );
     }
 
     private void handlerAnimationState(AnimationXyState state, double speed) {
@@ -534,9 +702,12 @@ public class GameController extends ViewLifecycle {
         renderMapBackground(gc);
 
         // 渲染坦克
-
-        for (TankState state : tanks.values()) {
-            renderTankAtPosition(gc, state.getCurrentX(), state.getCurrentY(), state.getDirection());
+        Long myPlayerId = UserInfoManager.getInstance().getPlayerId();
+        for (Map.Entry<Long, TankState> entry : tanks.entrySet()) {
+            long playerId = entry.getKey();
+            TankState state = entry.getValue();
+            boolean isMyTank = myPlayerId != null && playerId == myPlayerId;
+            renderTankAtPosition(gc, state.getCurrentX(), state.getCurrentY(), state.getDirection(), state, isMyTank);
         }
 
         // 渲染子弹
@@ -565,11 +736,43 @@ public class GameController extends ViewLifecycle {
                 double x = col * CELL_SIZE;
                 double y = row * CELL_SIZE;
 
+                String key = row + "_" + col;
+                boolean isDestroying = destroyedBrickAnimations.containsKey(key);
+
+                // 如果正在播放摧毁动画，显示动画效果
+                if (isDestroying) {
+                    long elapsed = System.currentTimeMillis() - destroyedBrickAnimations.get(key);
+                    double progress = Math.min(elapsed / 500.0, 1.0); // 0-1的进度
+
+                    // 摧毁动画：闪烁和缩放效果
+                    double alpha = 1.0 - progress;
+                    double scale = 1.0 - progress * 0.5; // 缩小到50%
+
+                    // 绘制原始砖块（带透明度）
+                    Color brickColor = getCellColor(MapIndex.BRICK);
+                    gc.setGlobalAlpha(alpha);
+                    gc.setFill(brickColor);
+                    double offsetX = (CELL_SIZE - CELL_SIZE * scale) / 2;
+                    double offsetY = (CELL_SIZE - CELL_SIZE * scale) / 2;
+                    gc.fillRect(x + offsetX, y + offsetY, CELL_SIZE * scale, CELL_SIZE * scale);
+                    gc.setGlobalAlpha(1.0);
+
+                    // 如果动画完成，显示为空地
+                    if (progress >= 1.0) {
+                        cellType = MapIndex.EMPTY.getCode();
+                    }
+                }
+
                 Color cellColor = getCellColor(MapIndex.of(cellType));
                 gc.setFill(cellColor);
                 gc.fillRect(x, y, CELL_SIZE, CELL_SIZE);
 
-                if (cellType != MapIndex.EMPTY.getCode()) {
+                // 只对不可破坏墙和可破坏墙绘制边框，已摧毁墙、空地和正在摧毁的砖块不绘制边框
+                byte finalCellType = cellType;
+                if (!isDestroying
+                        && finalCellType != MapIndex.DESTROYED_WALL.getCode()
+                        && finalCellType != MapIndex.EMPTY.getCode()
+                        && (finalCellType == MapIndex.WALL.getCode() || finalCellType == MapIndex.BRICK.getCode())) {
                     gc.setStroke(Color.GRAY);
                     gc.setLineWidth(0.5);
                     gc.strokeRect(x, y, CELL_SIZE, CELL_SIZE);
@@ -581,7 +784,17 @@ public class GameController extends ViewLifecycle {
     /**
      * 在指定位置渲染坦克
      */
-    private void renderTankAtPosition(GraphicsContext gc, double x, double y, Direction direction) {
+    private void renderTankAtPosition(GraphicsContext gc, double x, double y, Direction direction, TankState state,
+            boolean isMyTank) {
+        // 受击动画效果
+        boolean isHit = state != null && state.isHit();
+        if (isHit) {
+            // 受击时闪烁效果
+            long elapsed = System.currentTimeMillis() - state.getHitAnimationStartTime();
+            double alpha = 0.5 + 0.5 * Math.sin(elapsed / 50.0); // 闪烁效果
+            gc.setGlobalAlpha(alpha);
+        }
+
         // 坦克大小
         double baseSize = CELL_SIZE * 0.8;
         double longSide = baseSize * 1.2;
@@ -598,8 +811,34 @@ public class GameController extends ViewLifecycle {
 
         double circleRadius = Math.min(rectWidth, rectHeight) * 0.4;
 
+        // 根据是否自己的坦克和受击状态选择颜色
+        // 自己的坦克：正常绿色，受击黄色
+        // 其他坦克：正常红色，受击灰色
+        Color bodyColor, circleColor, barrelColor;
+        if (isMyTank) {
+            if (isHit) {
+                bodyColor = Color.YELLOW;
+                circleColor = Color.YELLOW;
+                barrelColor = Color.YELLOW;
+            } else {
+                bodyColor = Color.GREEN;
+                circleColor = Color.DARKGREEN;
+                barrelColor = Color.DARKGREEN;
+            }
+        } else {
+            if (isHit) {
+                bodyColor = Color.GRAY;
+                circleColor = Color.GRAY;
+                barrelColor = Color.GRAY;
+            } else {
+                bodyColor = Color.RED;
+                circleColor = Color.DARKRED;
+                barrelColor = Color.DARKRED;
+            }
+        }
+
         // 绘制长方形坦克主体
-        gc.setFill(Color.GREEN);
+        gc.setFill(bodyColor);
         gc.fillRect(x - rectWidth / 2, y - rectHeight / 2, rectWidth, rectHeight);
 
         // 绘制炮管
@@ -636,11 +875,12 @@ public class GameController extends ViewLifecycle {
                 return;
         }
 
-        gc.setFill(Color.DARKGREEN);
+        // 绘制炮管
+        gc.setFill(barrelColor);
         gc.fillRect(barrelX, barrelY, barrelW, barrelH);
 
         // 绘制圆形
-        gc.setFill(Color.DARKGREEN);
+        gc.setFill(circleColor);
         gc.fillOval(x - circleRadius, y - circleRadius, circleRadius * 2, circleRadius * 2);
 
         // 绘制边框
@@ -648,6 +888,60 @@ public class GameController extends ViewLifecycle {
         gc.setLineWidth(1.5);
         gc.strokeRect(x - rectWidth / 2, y - rectHeight / 2, rectWidth, rectHeight);
         gc.strokeOval(x - circleRadius, y - circleRadius, circleRadius * 2, circleRadius * 2);
+
+        // 恢复透明度
+        if (isHit) {
+            gc.setGlobalAlpha(1.0);
+        }
+
+        // 绘制血条
+        if (state != null) {
+            renderHealthBar(gc, x, y, rectHeight, state);
+        }
+    }
+
+    /**
+     * 渲染坦克血条
+     */
+    private void renderHealthBar(GraphicsContext gc, double tankX, double tankY, double tankHeight, TankState state) {
+        // 只在满足显示条件时显示血条
+        if (!state.isShowHealthBar()) {
+            return;
+        }
+
+        double healthBarWidth = CELL_SIZE * 0.8;
+        double healthBarHeight = 4;
+        double healthBarX = tankX - healthBarWidth / 2;
+        double healthBarY = tankY - tankHeight / 2 - 8; // 在坦克上方
+
+        // 血条背景（灰色）
+        gc.setFill(Color.GRAY);
+        gc.fillRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
+
+        // 当前血量（平滑动画）
+        double currentLife = state.getPreviousLife();
+        double maxLife = state.getMaxLife();
+        double healthRatio = Math.max(0, Math.min(1, currentLife / maxLife));
+        double healthBarFillWidth = healthBarWidth * healthRatio;
+
+        // 根据血量比例选择颜色
+        Color healthColor;
+        if (healthRatio > 0.6) {
+            healthColor = Color.GREEN;
+        } else if (healthRatio > 0.3) {
+            healthColor = Color.ORANGE;
+        } else {
+            healthColor = Color.RED;
+        }
+
+        // 绘制血量条
+        gc.setFill(healthColor);
+        gc.fillRect(healthBarX, healthBarY, healthBarFillWidth, healthBarHeight);
+
+        // 血条边框
+        gc.setStroke(Color.BLACK);
+        gc.setLineWidth(0.5);
+        gc.strokeRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
     }
 
     /**
@@ -690,25 +984,91 @@ public class GameController extends ViewLifecycle {
             gameKeyHandler = event -> {
                 KeyCode code = event.getCode();
                 if (code == KeyCode.W || code == KeyCode.A || code == KeyCode.S || code == KeyCode.D) {
-                    handleTankMove(code);
+                    // 添加到按下的键集合
+                    if (pressedKeys.add(code)) {
+                        // 新按下的键，立即发送消息
+                        handleTankMove(code);
+                        // 如果还没有启动重复定时器，启动它
+                        startKeyRepeat();
+                    }
                     event.consume();
                 } else if (code == KeyCode.SPACE) {
                     handleTankShoot();
                     event.consume();
                 }
             };
+
+            gameKeyReleasedHandler = event -> {
+                KeyCode code = event.getCode();
+                if (code == KeyCode.W || code == KeyCode.A || code == KeyCode.S || code == KeyCode.D) {
+                    // 从按下的键集合中移除
+                    pressedKeys.remove(code);
+                    // 如果没有按下的移动键了，停止重复定时器
+                    if (pressedKeys.isEmpty()) {
+                        stopKeyRepeat();
+                    }
+                    event.consume();
+                }
+            };
         }
         scene.addEventFilter(KeyEvent.KEY_PRESSED, gameKeyHandler);
+        scene.addEventFilter(KeyEvent.KEY_RELEASED, gameKeyReleasedHandler);
+    }
+
+    /**
+     * 开始按键重复（持续移动）
+     */
+    private void startKeyRepeat() {
+        stopKeyRepeat(); // 先停止之前的定时器
+
+        keyRepeatTimeline = new Timeline(
+                new KeyFrame(
+                        Duration.millis(50), // 每50ms发送一次移动消息
+                        e -> {
+                            // 获取优先级最高的移动键（W > S > A > D）
+                            KeyCode priorityKey = null;
+                            if (pressedKeys.contains(KeyCode.W)) {
+                                priorityKey = KeyCode.W;
+                            } else if (pressedKeys.contains(KeyCode.S)) {
+                                priorityKey = KeyCode.S;
+                            } else if (pressedKeys.contains(KeyCode.A)) {
+                                priorityKey = KeyCode.A;
+                            } else if (pressedKeys.contains(KeyCode.D)) {
+                                priorityKey = KeyCode.D;
+                            }
+
+                            if (priorityKey != null) {
+                                handleTankMove(priorityKey);
+                            }
+                        }));
+        keyRepeatTimeline.setCycleCount(Animation.INDEFINITE);
+        keyRepeatTimeline.play();
+    }
+
+    /**
+     * 停止按键重复
+     */
+    private void stopKeyRepeat() {
+        if (keyRepeatTimeline != null) {
+            keyRepeatTimeline.stop();
+            keyRepeatTimeline = null;
+        }
     }
 
     /**
      * 移除游戏按键监听
      */
     private void removeGameKeyListener() {
+        stopKeyRepeat();
+        pressedKeys.clear();
+
         if (gameContainer != null && gameKeyHandler != null) {
             Scene scene = gameContainer.getScene();
             if (scene != null) {
                 scene.removeEventFilter(KeyEvent.KEY_PRESSED, gameKeyHandler);
+                if (gameKeyReleasedHandler != null) {
+                    scene.removeEventFilter(KeyEvent.KEY_RELEASED, gameKeyReleasedHandler);
+                }
             }
         }
     }

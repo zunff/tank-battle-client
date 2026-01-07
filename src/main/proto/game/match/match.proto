@@ -29,6 +29,7 @@ message Tank {
   double x = 2;
   double y = 3;
   int32 direction = 4;
+  int32 life = 5;
 }
 
 message Bullet {
