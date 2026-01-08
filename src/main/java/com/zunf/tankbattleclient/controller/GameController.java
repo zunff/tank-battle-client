@@ -5,6 +5,7 @@ import com.zunf.tankbattleclient.TankBattleApplication;
 import com.zunf.tankbattleclient.constant.GameConstants;
 import com.zunf.tankbattleclient.enums.GameMsgType;
 import com.zunf.tankbattleclient.enums.Direction;
+import com.zunf.tankbattleclient.enums.MatchEndReason;
 import com.zunf.tankbattleclient.enums.ViewEnum;
 import com.zunf.tankbattleclient.manager.GameConnectionManager;
 import com.zunf.tankbattleclient.manager.UserInfoManager;
@@ -35,7 +36,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.function.Consumer;
+
+import static javafx.application.Platform.runLater;
 
 /**
  * 游戏界面控制器
@@ -54,6 +59,18 @@ public class GameController extends ViewLifecycle {
 
     @FXML
     private Label leaveGameLabel;
+
+    @FXML
+    private VBox gameOverBox;
+
+    @FXML
+    private Label gameOverTitle;
+
+    @FXML
+    private Label gameOverMessage;
+
+    @FXML
+    private Label gameOverCountdown;
 
     // 游戏数据
     private GameRoomProto.StartNotice gameData;
@@ -82,6 +99,10 @@ public class GameController extends ViewLifecycle {
     private boolean adjustingAspectRatio = false;
     private javafx.beans.value.ChangeListener<Number> widthListener;
     private javafx.beans.value.ChangeListener<Number> heightListener;
+
+    // 游戏结束状态
+    private boolean isGameOver = false;
+    private Timer gameOverTimer;
 
     @Override
     public void onShow(Object data) {
@@ -131,6 +152,12 @@ public class GameController extends ViewLifecycle {
         // 停止动画循环
         stopAnimationLoop();
 
+        // 取消游戏结束定时器
+        if (gameOverTimer != null) {
+            gameOverTimer.cancel();
+            gameOverTimer = null;
+        }
+
         // 清理状态
         tanks.clear();
         bullets.clear();
@@ -138,6 +165,17 @@ public class GameController extends ViewLifecycle {
         previousMapData = null;
         gameData = null;
         isFirstTick = true;
+        isGameOver = false;
+
+        // 隐藏UI弹窗
+        if (gameOverBox != null) {
+            gameOverBox.setVisible(false);
+            gameOverBox.setManaged(false);
+        }
+        if (menuBox != null) {
+            menuBox.setVisible(false);
+            menuBox.setManaged(false);
+        }
     }
 
     /**
@@ -154,6 +192,13 @@ public class GameController extends ViewLifecycle {
                 stage.heightProperty().removeListener(heightListener);
                 heightListener = null;
             }
+
+            // 移除监听器后，恢复窗口到非1:1比例
+            // 设置为大厅的默认尺寸（800x600）
+            adjustingAspectRatio = true;
+            stage.setWidth(800);
+            stage.setHeight(600);
+            adjustingAspectRatio = false;
         }
     }
 
@@ -277,7 +322,7 @@ public class GameController extends ViewLifecycle {
                 .sendAndListenFuture(GameMsgType.LEAVE_MATCH, request, 5000)
                 .thenAccept(responseBo -> {
                     // 在JavaFX应用线程中执行UI操作
-                    javafx.application.Platform.runLater(() -> {
+                    runLater(() -> {
                         CommonProto.BaseResponse baseResponse = responseBo.getResponse();
                         if (baseResponse != null && baseResponse.getCode() == 0) {
                             // 服务器正常响应，返回大厅
@@ -293,7 +338,7 @@ public class GameController extends ViewLifecycle {
                 })
                 .exceptionally(throwable -> {
                     // 处理异常（超时或其他错误）
-                    javafx.application.Platform.runLater(() -> {
+                    runLater(() -> {
                         System.err.println("离开游戏请求异常: " + throwable.getMessage());
                         // 即使异常也返回大厅（可选，根据业务需求决定）
                         ViewManager.getInstance().show(ViewEnum.LOBBY);
@@ -378,6 +423,13 @@ public class GameController extends ViewLifecycle {
      * 处理Tick消息
      */
     private void handleTick(MatchProto.Tick tick) {
+        // 检查游戏是否结束
+        if (tick.getIsGameOver() && !isGameOver) {
+            isGameOver = true;
+            handleGameOver(tick);
+            return;
+        }
+
         // 更新坦克状态
         updateTanks(tick);
 
@@ -707,5 +759,103 @@ public class GameController extends ViewLifecycle {
                 .build();
 
         GameConnectionManager.getInstance().send(GameMsgType.TANK_SHOOT, request);
+    }
+
+    /**
+     * 处理游戏结束
+     */
+    private void handleGameOver(MatchProto.Tick tick) {
+        // 禁用输入
+        disableGameInput();
+
+        // 在JavaFX应用线程中执行UI操作
+        runLater(() -> {
+            // 构建游戏结束消息
+            String message = buildGameOverMessage(tick);
+
+            // 显示游戏结束界面
+            if (gameOverMessage != null) {
+                gameOverMessage.setText(message);
+            }
+            if (gameOverBox != null) {
+                gameOverBox.setVisible(true);
+                gameOverBox.setManaged(true);
+            }
+
+            // 启动5秒倒计时
+            startGameOverCountdown();
+        });
+    }
+
+    /**
+     * 构建游戏结束消息
+     */
+    private String buildGameOverMessage(MatchProto.Tick tick) {
+        long winnerPlayerId = tick.getWinnerPlayerId();
+        int endReasonCode = tick.getEndReason();
+        MatchEndReason endReason = MatchEndReason.of(endReasonCode);
+        Long myPlayerId = UserInfoManager.getInstance().getPlayerId();
+
+        // 处理平局（winnerPlayerId为0或空）
+        if (winnerPlayerId == 0) {
+            return switch (endReason) {
+                case DRAW -> "平局！";
+                case TIMEOUT -> "时间到！平局！";
+                case ALL_LEFT -> "所有玩家都离开了";
+                case ERROR -> "游戏异常结束";
+                default -> "游戏结束";
+            };
+        }
+
+        // 有胜者的情况
+        boolean isWinner = myPlayerId != null && myPlayerId == winnerPlayerId;
+        String resultText = isWinner ? "你赢了！" : "你输了！";
+
+        return switch (endReason) {
+            case NORMAL -> resultText;
+            case TIMEOUT -> "时间到！" + resultText;
+            default -> resultText;
+        };
+    }
+
+    /**
+     * 禁用游戏输入
+     */
+    private void disableGameInput() {
+        // 移除游戏按键监听
+        removeGameKeyListener();
+
+        // 隐藏菜单框
+        if (menuBox != null) {
+            menuBox.setVisible(false);
+            menuBox.setManaged(false);
+        }
+    }
+
+    /**
+     * 启动游戏结束倒计时
+     */
+    private void startGameOverCountdown() {
+        gameOverTimer = new Timer();
+        final int[] countdown = { 5 };
+
+        gameOverTimer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                runLater(() -> {
+                    if (countdown[0] > 0) {
+                        if (gameOverCountdown != null) {
+                            gameOverCountdown.setText(countdown[0] + "秒后返回大厅...");
+                        }
+                        countdown[0]--;
+                    } else {
+                        // 倒计时结束，返回大厅
+                        gameOverTimer.cancel();
+                        gameOverTimer = null;
+                        ViewManager.getInstance().show(ViewEnum.LOBBY);
+                    }
+                });
+            }
+        }, 0, 1000); // 每秒更新一次
     }
 }

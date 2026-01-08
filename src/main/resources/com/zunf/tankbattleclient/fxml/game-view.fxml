@@ -15,6 +15,15 @@
             <Label text="菜单" styleClass="menu-title" />
             <Label fx:id="leaveGameLabel" text="离开游戏" styleClass="menu-item" onMouseClicked="#onLeaveGameClick" />
          </VBox>
+
+         <!-- 游戏结束弹窗 -->
+         <VBox fx:id="gameOverBox" alignment="CENTER" spacing="20.0" styleClass="game-over-box" visible="false" managed="false">
+            <Label fx:id="gameOverTitle" text="游戏结束" styleClass="game-over-title" />
+            <VBox alignment="CENTER" spacing="10.0">
+               <Label fx:id="gameOverMessage" text="胜负未定" styleClass="game-over-message" />
+               <Label fx:id="gameOverCountdown" text="5秒后返回大厅..." styleClass="game-over-countdown" />
+            </VBox>
+         </VBox>
       </StackPane>
    </center>
 </BorderPane>

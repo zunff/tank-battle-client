@@ -1,5 +1,9 @@
 /* 游戏界面样式 */
 
+#gameContainer {
+    -fx-background-color: #1a1a1a; /* 深色背景，消除边缘感 */
+}
+
 /* 菜单框样式 */
 .menu-box {
     -fx-background-color: #34495e;
@@ -42,5 +46,39 @@
     -fx-text-fill: #3498db;
     -fx-border-color: #3498db;
     -fx-effect: dropshadow(gaussian, rgba(52, 152, 219, 0.6), 8, 0, 0, 2);
+}
+
+/* 游戏结束弹窗样式 */
+.game-over-box {
+    -fx-background-color: rgba(44, 62, 80, 0.95);
+    -fx-background-radius: 15px;
+    -fx-border-color: #f1c40f;
+    -fx-border-width: 3px;
+    -fx-border-radius: 15px;
+    -fx-padding: 40px 60px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.8), 30, 0, 0, 10);
+    -fx-pref-width: 400px;
+    -fx-max-width: 400px;
+    -fx-pref-height: 250px;
+    -fx-max-height: 250px; /* 限制高度，防止垂直拉伸 */
+}
+
+.game-over-title {
+    -fx-font-size: 36px;
+    -fx-text-fill: #f1c40f;
+    -fx-font-weight: bold;
+    -fx-effect: dropshadow(one-pass-box, rgba(0, 0, 0, 0.5), 2, 2, 0, 0);
+}
+
+.game-over-message {
+    -fx-font-size: 20px;
+    -fx-text-fill: #ecf0f1;
+    -fx-font-weight: bold;
+}
+
+.game-over-countdown {
+    -fx-font-size: 14px;
+    -fx-text-fill: #bdc3c7;
+    -fx-font-style: italic;
 }
 
