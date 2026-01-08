@@ -219,7 +219,7 @@ public class GameController extends ViewLifecycle {
     }
 
     /**
-     * 设置窗口保持1:1宽高比
+     * 设置窗口内容区域保持1:1宽高比
      */
     private void setupWindowAspectRatio() {
         javafx.stage.Stage stage = ViewManager.getInstance().getStage();
@@ -227,38 +227,49 @@ public class GameController extends ViewLifecycle {
             return;
         }
 
-        // 监听窗口宽度变化，调整高度保持1:1比例
+        Scene scene = stage.getScene();
+        if (scene == null) {
+            return;
+        }
+
+        // 只监听 Scene 的宽度变化，单向调整高度避免相互触发
         widthListener = (obs, oldWidth, newWidth) -> {
             if (adjustingAspectRatio || newWidth.doubleValue() <= 0) {
                 return;
             }
             adjustingAspectRatio = true;
-            stage.setHeight(newWidth.doubleValue());
-            adjustingAspectRatio = false;
-        };
-        stage.widthProperty().addListener(widthListener);
-
-        // 监听窗口高度变化，调整宽度保持1:1比例
-        heightListener = (obs, oldHeight, newHeight) -> {
-            if (adjustingAspectRatio || newHeight.doubleValue() <= 0) {
-                return;
+            try {
+                double decorationHeight = stage.getHeight() - scene.getHeight();
+                if (decorationHeight >= 0) {
+                    stage.setHeight(newWidth.doubleValue() + decorationHeight);
+                }
+            } catch (Exception e) {
+                System.err.println("Error adjusting aspect ratio: " + e.getMessage());
+            } finally {
+                adjustingAspectRatio = false;
             }
-            adjustingAspectRatio = true;
-            stage.setWidth(newHeight.doubleValue());
-            adjustingAspectRatio = false;
         };
-        stage.heightProperty().addListener(heightListener);
+        scene.widthProperty().addListener(widthListener);
 
-        // 设置初始大小为1:1（如果当前不是1:1）
-        double currentWidth = stage.getWidth();
-        double currentHeight = stage.getHeight();
-        if (currentWidth > 0 && currentHeight > 0 && Math.abs(currentWidth - currentHeight) > 1) {
-            double size = Math.max(currentWidth, currentHeight);
-            adjustingAspectRatio = true;
-            stage.setWidth(size);
-            stage.setHeight(size);
-            adjustingAspectRatio = false;
-        }
+        // 初始同步一次
+        runLater(() -> {
+            if (stage.getScene() != null && scene.getWidth() > 0 && scene.getHeight() > 0) {
+                adjustingAspectRatio = true;
+                try {
+                    double targetSize = Math.max(scene.getWidth(), scene.getHeight());
+                    double decorationWidth = stage.getWidth() - scene.getWidth();
+                    double decorationHeight = stage.getHeight() - scene.getHeight();
+                    if (decorationWidth >= 0 && decorationHeight >= 0) {
+                        stage.setWidth(targetSize + decorationWidth);
+                        stage.setHeight(targetSize + decorationHeight);
+                    }
+                } catch (Exception e) {
+                    System.err.println("Error initializing aspect ratio: " + e.getMessage());
+                } finally {
+                    adjustingAspectRatio = false;
+                }
+            }
+        });
     }
 
     /**
