@@ -5,11 +5,10 @@ import com.zunf.tankbattleclient.enums.ViewEnum;
 import com.zunf.tankbattleclient.manager.GameConnectionManager;
 import com.zunf.tankbattleclient.manager.UserInfoManager;
 import com.zunf.tankbattleclient.manager.ViewManager;
-import com.zunf.tankbattleclient.protobuf.CommonProto;
 import com.zunf.tankbattleclient.protobuf.game.auth.AuthProto;
 import com.zunf.tankbattleclient.service.AuthService;
 import com.zunf.tankbattleclient.ui.AsyncButton;
-import com.zunf.tankbattleclient.util.ProtoBufUtil;
+import com.zunf.tankbattleclient.util.LaunchArgsUtil;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -45,18 +44,38 @@ public class LoginController extends ViewLifecycle {
 
     @FXML
     public void initialize() {
+        // 从启动参数中读取账号密码并自动填入
+        loadLaunchArgs();
         initLoginBtn();
+    }
+
+    /**
+     * 从启动参数中加载账号密码
+     * 如果IDEA的VM options中设置了 -Dlogin.username=xxx -Dlogin.password=yyy
+     * 则自动填入到输入框中
+     */
+    private void loadLaunchArgs() {
+        String username = LaunchArgsUtil.getLoginUsername();
+        String password = LaunchArgsUtil.getLoginPassword();
+
+        if (username != null && !username.trim().isEmpty()) {
+            usernameField.setText(username.trim());
+        }
+
+        if (password != null && !password.trim().isEmpty()) {
+            passwordField.setText(password.trim());
+        }
     }
 
     private void initLoginBtn() {
         asyncLoginButton.setAction(() -> {
             String username = usernameField.getText();
             String password = passwordField.getText();
-            
+
             // 输入验证
             clearFieldStyles();
             StringBuilder errorMsg = new StringBuilder();
-            
+
             if (username.isEmpty()) {
                 usernameField.setStyle("-fx-border-color: red;");
                 errorMsg.append("用户名不能为空 ");
@@ -64,7 +83,7 @@ public class LoginController extends ViewLifecycle {
                 usernameField.setStyle("-fx-border-color: red;");
                 errorMsg.append("用户名长度必须在3-20个字符之间 ");
             }
-            
+
             if (password.isEmpty()) {
                 passwordField.setStyle("-fx-border-color: red;");
                 errorMsg.append("密码不能为空 ");
@@ -72,13 +91,13 @@ public class LoginController extends ViewLifecycle {
                 passwordField.setStyle("-fx-border-color: red;");
                 errorMsg.append("密码长度必须在6-20个字符之间 ");
             }
-            
+
             if (errorMsg.length() > 0) {
                 messageLabel.setText(errorMsg.toString().trim());
                 messageLabel.setStyle("-fx-text-fill: red;");
                 return CompletableFuture.completedFuture(null);
             }
-            
+
             // http 请求业务服务器获取token
             return CompletableFuture.supplyAsync(() -> authService.login(username, password))
                     .thenCompose(token -> {
@@ -86,7 +105,8 @@ public class LoginController extends ViewLifecycle {
                         if (!gameConnectionManager.isConnected()) {
                             gameConnectionManager.connect();
                         }
-                        return gameConnectionManager.sendAndListenFuture(GameMsgType.LOGIN, AuthProto.LoginRequest.newBuilder().setToken(token).build());
+                        return gameConnectionManager.sendAndListenFuture(GameMsgType.LOGIN,
+                                AuthProto.LoginRequest.newBuilder().setToken(token).build());
                     });
         });
 
@@ -98,8 +118,7 @@ public class LoginController extends ViewLifecycle {
             UserInfoManager.getInstance().setUserinfo(
                     usernameField.getText(),
                     lr.getPlayerName(),
-                    lr.getPlayerId()
-            );
+                    lr.getPlayerId());
             // 跳转到大厅界面
             ViewManager.getInstance().show(ViewEnum.LOBBY);
         });
@@ -110,7 +129,7 @@ public class LoginController extends ViewLifecycle {
         });
 
     }
-    
+
     private void clearFieldStyles() {
         usernameField.setStyle("");
         passwordField.setStyle("");

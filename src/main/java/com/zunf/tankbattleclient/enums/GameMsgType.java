@@ -23,6 +23,7 @@ public enum GameMsgType {
 
     TANK_MOVE(11),
     TANK_SHOOT(12),
+    LEAVE_MATCH(13),
 
     // server -> client
     PONG(10001),

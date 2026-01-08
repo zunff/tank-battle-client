@@ -11,6 +11,7 @@ import com.zunf.tankbattleclient.manager.UserInfoManager;
 import com.zunf.tankbattleclient.manager.ViewManager;
 import com.zunf.tankbattleclient.model.bo.BulletState;
 import com.zunf.tankbattleclient.model.bo.TankState;
+import com.zunf.tankbattleclient.protobuf.CommonProto;
 import com.zunf.tankbattleclient.protobuf.game.match.MatchProto;
 import com.zunf.tankbattleclient.protobuf.game.room.GameRoomProto;
 import com.zunf.tankbattleclient.util.AnimationHandler;
@@ -79,6 +80,8 @@ public class GameController extends ViewLifecycle {
 
     // 窗口宽高比控制
     private boolean adjustingAspectRatio = false;
+    private javafx.beans.value.ChangeListener<Number> widthListener;
+    private javafx.beans.value.ChangeListener<Number> heightListener;
 
     @Override
     public void onShow(Object data) {
@@ -113,6 +116,9 @@ public class GameController extends ViewLifecycle {
             canvasScaler = null;
         }
 
+        // 移除窗口宽高比监听器
+        removeWindowAspectRatioListeners();
+
         // 移除ESC键监听
         removeEscKeyListener();
 
@@ -132,6 +138,23 @@ public class GameController extends ViewLifecycle {
         previousMapData = null;
         gameData = null;
         isFirstTick = true;
+    }
+
+    /**
+     * 移除窗口宽高比监听器
+     */
+    private void removeWindowAspectRatioListeners() {
+        javafx.stage.Stage stage = ViewManager.getInstance().getStage();
+        if (stage != null) {
+            if (widthListener != null) {
+                stage.widthProperty().removeListener(widthListener);
+                widthListener = null;
+            }
+            if (heightListener != null) {
+                stage.heightProperty().removeListener(heightListener);
+                heightListener = null;
+            }
+        }
     }
 
     /**
@@ -160,24 +183,26 @@ public class GameController extends ViewLifecycle {
         }
 
         // 监听窗口宽度变化，调整高度保持1:1比例
-        stage.widthProperty().addListener((obs, oldWidth, newWidth) -> {
+        widthListener = (obs, oldWidth, newWidth) -> {
             if (adjustingAspectRatio || newWidth.doubleValue() <= 0) {
                 return;
             }
             adjustingAspectRatio = true;
             stage.setHeight(newWidth.doubleValue());
             adjustingAspectRatio = false;
-        });
+        };
+        stage.widthProperty().addListener(widthListener);
 
         // 监听窗口高度变化，调整宽度保持1:1比例
-        stage.heightProperty().addListener((obs, oldHeight, newHeight) -> {
+        heightListener = (obs, oldHeight, newHeight) -> {
             if (adjustingAspectRatio || newHeight.doubleValue() <= 0) {
                 return;
             }
             adjustingAspectRatio = true;
             stage.setWidth(newHeight.doubleValue());
             adjustingAspectRatio = false;
-        });
+        };
+        stage.heightProperty().addListener(heightListener);
 
         // 设置初始大小为1:1（如果当前不是1:1）
         double currentWidth = stage.getWidth();
@@ -234,7 +259,47 @@ public class GameController extends ViewLifecycle {
      */
     @FXML
     private void onLeaveGameClick(MouseEvent event) {
-        ViewManager.getInstance().show(ViewEnum.LOBBY);
+        Long playerId = UserInfoManager.getInstance().getPlayerId();
+        if (playerId == null || matchId == 0) {
+            // 如果没有有效的playerId或matchId，直接返回大厅
+            ViewManager.getInstance().show(ViewEnum.LOBBY);
+            return;
+        }
+
+        // 构建离开匹配请求
+        MatchProto.LeaveMatchReq request = MatchProto.LeaveMatchReq.newBuilder()
+                .setPlayerId(playerId)
+                .setMatchId(matchId)
+                .build();
+
+        // 发送请求并等待响应
+        GameConnectionManager.getInstance()
+                .sendAndListenFuture(GameMsgType.LEAVE_MATCH, request, 5000)
+                .thenAccept(responseBo -> {
+                    // 在JavaFX应用线程中执行UI操作
+                    javafx.application.Platform.runLater(() -> {
+                        CommonProto.BaseResponse baseResponse = responseBo.getResponse();
+                        if (baseResponse != null && baseResponse.getCode() == 0) {
+                            // 服务器正常响应，返回大厅
+                            ViewManager.getInstance().show(ViewEnum.LOBBY);
+                        } else {
+                            // 响应失败，显示错误信息（可选）
+                            String errorMsg = baseResponse != null ? baseResponse.getMessage() : "离开游戏失败";
+                            System.err.println("离开游戏失败: " + errorMsg);
+                            // 即使失败也返回大厅（可选，根据业务需求决定）
+                            ViewManager.getInstance().show(ViewEnum.LOBBY);
+                        }
+                    });
+                })
+                .exceptionally(throwable -> {
+                    // 处理异常（超时或其他错误）
+                    javafx.application.Platform.runLater(() -> {
+                        System.err.println("离开游戏请求异常: " + throwable.getMessage());
+                        // 即使异常也返回大厅（可选，根据业务需求决定）
+                        ViewManager.getInstance().show(ViewEnum.LOBBY);
+                    });
+                    return null;
+                });
     }
 
     /**

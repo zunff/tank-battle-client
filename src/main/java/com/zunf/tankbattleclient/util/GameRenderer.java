@@ -22,12 +22,12 @@ public class GameRenderer {
      */
     public static Color getCellColor(MapIndex cellType) {
         return switch (cellType) {
-            case MapIndex.EMPTY -> Color.LIGHTGRAY; // 空地 - 浅灰色
-            case MapIndex.WALL -> Color.DARKGRAY; // 不可破坏墙 - 深灰色
-            case MapIndex.BRICK -> Color.SADDLEBROWN; // 可破坏砖块 - 棕色
-            case MapIndex.SPAWN -> Color.LIGHTGREEN; // 出生点 - 浅绿色
-            case MapIndex.DESTROYED_WALL -> Color.LIGHTGRAY;
-            default -> Color.WHITE; // 未知类型 - 白色
+            case EMPTY -> GameConstants.EMPTY_COLOR;
+            case WALL -> GameConstants.WALL_COLOR;
+            case BRICK -> GameConstants.BRICK_COLOR;
+            case SPAWN -> GameConstants.SPAWN_COLOR;
+            case DESTROYED_WALL -> GameConstants.DESTROYED_WALL_COLOR;
+            default -> GameConstants.UNKNOWN_COLOR;
         };
     }
 

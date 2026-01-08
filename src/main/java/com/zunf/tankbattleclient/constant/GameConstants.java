@@ -1,5 +1,7 @@
 package com.zunf.tankbattleclient.constant;
 
+import javafx.scene.paint.Color;
+
 public interface GameConstants {
 
     // ========== 地图常量 ==========
@@ -17,6 +19,13 @@ public interface GameConstants {
      * Canvas大小 1024x1024
      */
     int CANVAS_SIZE = MAP_SIZE * CELL_SIZE;
+
+    Color EMPTY_COLOR = Color.rgb(220, 220, 220);        // 空地：浅灰（接近经典游戏的背景色）
+    Color WALL_COLOR = Color.rgb(105, 105, 105);         // 铁墙（不可破坏）：暗灰色（金属质感）
+    Color BRICK_COLOR = Color.rgb(138, 54, 15);          // 砖墙（可破坏）：砖棕色（经典土砖色）
+    Color SPAWN_COLOR = Color.rgb(144, 238, 144);       // 出生点：淡绿色（柔和不刺眼）
+    Color DESTROYED_WALL_COLOR = EMPTY_COLOR;            // 被摧毁的墙：同空地色
+    Color UNKNOWN_COLOR = Color.WHITE;                   // 未知类型：白色（便于调试）
 
     // ========== 动画速度 ==========
     /**

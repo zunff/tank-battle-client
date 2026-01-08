@@ -22,6 +22,8 @@ message Tick {
   repeated Bullet bullets = 4;
   repeated bytes mapData = 5;  // 使用 repeated bytes 来表示二维字节数组
   bool isGameOver = 6;
+  int64 winnerPlayerId = 7;
+  int32 endReason = 8;
 }
 
 message Tank {
@@ -30,6 +32,7 @@ message Tank {
   double y = 3;
   int32 direction = 4;
   int32 life = 5;
+  string nickName = 6;
 }
 
 message Bullet {
@@ -41,3 +44,8 @@ message Bullet {
 }
 
 // tick 数据 end
+
+message LeaveMatchReq {
+  int64 playerId = 1;
+  int64 matchId = 2;
+}
