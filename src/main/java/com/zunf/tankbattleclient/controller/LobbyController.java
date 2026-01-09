@@ -251,28 +251,27 @@ public class LobbyController extends ViewLifecycle {
         ).thenAccept(responseBo -> {
             CommonProto.BaseResponse resp = responseBo.getResponse();
             if (resp.getCode() != ErrorCode.OK.getCode()) {
-                throw new BusinessException(ErrorCode.of(resp.getCode()));
+                return;
             }
-            GameRoomProto.PageResponse r = ProtoBufUtil.parseRespBody(resp, GameRoomProto.PageResponse.parser());
+            GameRoomProto.PageResponse r = (GameRoomProto.PageResponse) responseBo.getPayload();
             List<GameRoomProto.GameRoomData> dataList = r.getDataList();
-            Platform.runLater(() -> {
-                // 清空现有列表
-                roomListView.getItems().clear();
-                // 添加新数据（直接存储 GameRoomData 对象）
-                roomListView.getItems().addAll(dataList);
-                
-                // 设置单元格工厂，自定义显示格式
-                roomListView.setCellFactory(param -> new ListCell<GameRoomProto.GameRoomData>() {
-                    @Override
-                    protected void updateItem(GameRoomProto.GameRoomData item, boolean empty) {
-                        super.updateItem(item, empty);
-                        if (empty || item == null) {
-                            setText(null);
-                        } else {
-                            setText(item.getName() + " - " + item.getStatus().name() + " (" + item.getNowPlayers() + "/" + item.getMaxPlayers() + ")");
-                        }
+
+            // 清空现有列表
+            roomListView.getItems().clear();
+            // 添加新数据（直接存储 GameRoomData 对象）
+            roomListView.getItems().addAll(dataList);
+
+            // 设置单元格工厂，自定义显示格式
+            roomListView.setCellFactory(param -> new ListCell<>() {
+                @Override
+                protected void updateItem(GameRoomProto.GameRoomData item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || item == null) {
+                        setText(null);
+                    } else {
+                        setText(item.getName() + " - " + item.getStatus().name() + " (" + item.getNowPlayers() + "/" + item.getMaxPlayers() + ")");
                     }
-                });
+                }
             });
         });
     }

@@ -330,30 +330,25 @@ public class GameController extends ViewLifecycle {
 
         // 发送请求并等待响应
         GameConnectionManager.getInstance()
-                .sendAndListenFuture(GameMsgType.LEAVE_MATCH, request, 5000)
+                .sendAndListenFuture(GameMsgType.LEAVE_MATCH, request)
                 .thenAccept(responseBo -> {
-                    // 在JavaFX应用线程中执行UI操作
-                    runLater(() -> {
-                        CommonProto.BaseResponse baseResponse = responseBo.getResponse();
-                        if (baseResponse != null && baseResponse.getCode() == 0) {
-                            // 服务器正常响应，返回大厅
-                            ViewManager.getInstance().show(ViewEnum.LOBBY);
-                        } else {
-                            // 响应失败，显示错误信息（可选）
-                            String errorMsg = baseResponse != null ? baseResponse.getMessage() : "离开游戏失败";
-                            System.err.println("离开游戏失败: " + errorMsg);
-                            // 即使失败也返回大厅（可选，根据业务需求决定）
-                            ViewManager.getInstance().show(ViewEnum.LOBBY);
-                        }
-                    });
+                    CommonProto.BaseResponse baseResponse = responseBo.getResponse();
+                    if (baseResponse != null && baseResponse.getCode() == 0) {
+                        // 服务器正常响应，返回大厅
+                        ViewManager.getInstance().show(ViewEnum.LOBBY);
+                    } else {
+                        // 响应失败，显示错误信息（可选）
+                        String errorMsg = baseResponse != null ? baseResponse.getMessage() : "离开游戏失败";
+                        System.err.println("离开游戏失败: " + errorMsg);
+                        // 即使失败也返回大厅（可选，根据业务需求决定）
+                        ViewManager.getInstance().show(ViewEnum.LOBBY);
+                    }
                 })
                 .exceptionally(throwable -> {
                     // 处理异常（超时或其他错误）
-                    runLater(() -> {
-                        System.err.println("离开游戏请求异常: " + throwable.getMessage());
-                        // 即使异常也返回大厅（可选，根据业务需求决定）
-                        ViewManager.getInstance().show(ViewEnum.LOBBY);
-                    });
+                    System.err.println("离开游戏请求异常: " + throwable.getMessage());
+                    // 即使异常也返回大厅（可选，根据业务需求决定）
+                    ViewManager.getInstance().show(ViewEnum.LOBBY);
                     return null;
                 });
     }

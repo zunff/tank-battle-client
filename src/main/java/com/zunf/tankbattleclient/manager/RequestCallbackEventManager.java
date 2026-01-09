@@ -1,13 +1,13 @@
 package com.zunf.tankbattleclient.manager;
 
 import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.Message;
 import com.google.protobuf.MessageLite;
 import com.google.protobuf.Parser;
 import com.zunf.tankbattleclient.enums.GameMsgType;
 import com.zunf.tankbattleclient.model.bo.ResponseBo;
 import com.zunf.tankbattleclient.protobuf.CommonProto;
 import com.zunf.tankbattleclient.model.message.InboundMessage;
+import javafx.application.Platform;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -90,9 +90,9 @@ public class RequestCallbackEventManager {
                 }
             }
 
-            // 执行回调，添加异常处理
+            // 执行回调，添加异常处理 用UI线程回调
             try {
-                callback.accept(responseBo);
+                Platform.runLater(() -> callback.accept(responseBo));
             } catch (Exception e) {
                 System.err.println(
                         "RequestCallbackEventManager 回调执行异常: requestId=" + requestId + ", error=" + e.getMessage());
