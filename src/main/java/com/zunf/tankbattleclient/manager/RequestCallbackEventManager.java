@@ -83,7 +83,7 @@ public class RequestCallbackEventManager {
                 try {
                     MessageLite messageLite = parser.parseFrom(baseResponse.getPayloadBytes());
                     responseBo.setPayload(messageLite);
-                } catch (InvalidProtocolBufferException e) {
+                } catch (Exception e) {
                     System.out.println("RequestCallbackEventManager 解析消息体失败 " + e.getMessage());
                     removeListener(requestId);
                     return;

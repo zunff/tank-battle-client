@@ -8,6 +8,7 @@ enum RoomStatus {
   WAITING = 0;
   STARTING = 1;
   PLAYING = 2;
+  CALCULATING = 3;
 }
 
 enum UserStatus {

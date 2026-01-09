@@ -14,7 +14,7 @@ public enum GameMsgType {
     LOGIN(2, AuthProto.LoginResponse.parser()),
     LOGOUT(3),
     CREATE_ROOM(4, GameRoomProto.CreateResponse.parser()),
-    PAGE_ROOM(5, GameRoomProto.GameRoomData.parser()),
+    PAGE_ROOM(5, GameRoomProto.PageResponse.parser()),
     JOIN_ROOM(6, GameRoomProto.GameRoomDetail.parser()),
     LEAVE_ROOM(7),
     READY(8),
