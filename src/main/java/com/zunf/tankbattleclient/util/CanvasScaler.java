@@ -7,6 +7,8 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.transform.Scale;
 
+import java.util.function.Consumer;
+
 /**
  * Canvas缩放工具类
  * 负责Canvas的缩放和居中显示
@@ -17,6 +19,14 @@ public class CanvasScaler {
     private final BorderPane container;
     private Scale scale;
     private ChangeListener<Number> sizeListener;
+    private Consumer<Void> onScaleChanged;
+
+    /**
+     * 设置缩放变化回调
+     */
+    public void setOnScaleChanged(Consumer<Void> onScaleChanged) {
+        this.onScaleChanged = onScaleChanged;
+    }
 
     public CanvasScaler(Canvas canvas, BorderPane container) {
         this.canvas = canvas;
@@ -70,18 +80,23 @@ public class CanvasScaler {
         scale.setPivotY(0);
 
         // 调整Canvas在StackPane中的位置，使其居中
-        StackPane parent = (StackPane) canvas.getParent();
-        if (parent != null) {
-            // Canvas缩放后的实际大小
-            double scaledWidth = GameConstants.CANVAS_SIZE * scaleValue;
-            double scaledHeight = GameConstants.CANVAS_SIZE * scaleValue;
+//        StackPane parent = (StackPane) canvas.getParent();
+//        if (parent != null) {
+//            // Canvas缩放后的实际大小
+//            double scaledWidth = GameConstants.CANVAS_SIZE * scaleValue;
+//            double scaledHeight = GameConstants.CANVAS_SIZE * scaleValue;
+//
+//            // 计算偏移量使Canvas居中
+//            double offsetX = (containerWidth - scaledWidth) / 2;
+//            double offsetY = (containerHeight - scaledHeight) / 2;
+//
+//            canvas.setLayoutX(offsetX);
+//            canvas.setLayoutY(offsetY);
+//        }
 
-            // 计算偏移量使Canvas居中
-            double offsetX = (containerWidth - scaledWidth) / 2;
-            double offsetY = (containerHeight - scaledHeight) / 2;
-
-            canvas.setLayoutX(offsetX);
-            canvas.setLayoutY(offsetY);
+        // 调用缩放变化回调
+        if (onScaleChanged != null) {
+            onScaleChanged.accept(null);
         }
     }
 

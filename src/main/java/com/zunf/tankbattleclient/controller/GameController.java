@@ -31,6 +31,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
+import javafx.event.EventHandler;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -91,9 +92,9 @@ public class GameController extends ViewLifecycle {
     // 按键处理
     private final Set<KeyCode> pressedKeys = new HashSet<>();
     private KeyRepeatHandler keyRepeatHandler;
-    private javafx.event.EventHandler<KeyEvent> escKeyHandler;
-    private javafx.event.EventHandler<KeyEvent> gameKeyHandler;
-    private javafx.event.EventHandler<KeyEvent> gameKeyReleasedHandler;
+    private EventHandler<KeyEvent> escKeyHandler;
+    private EventHandler<KeyEvent> gameKeyHandler;
+    private EventHandler<KeyEvent> gameKeyReleasedHandler;
 
     // 窗口宽高比控制
     private boolean adjustingAspectRatio = false;
@@ -211,11 +212,8 @@ public class GameController extends ViewLifecycle {
         }
 
         canvasScaler = new CanvasScaler(gameCanvas, gameContainer);
+        canvasScaler.setOnScaleChanged(v -> renderGame());
         canvasScaler.initialize();
-
-        // 监听容器大小变化，触发重绘
-        gameContainer.widthProperty().addListener((obs, oldVal, newVal) -> renderGame());
-        gameContainer.heightProperty().addListener((obs, oldVal, newVal) -> renderGame());
     }
 
     /**
