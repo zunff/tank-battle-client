@@ -2,7 +2,6 @@ package com.zunf.tankbattleclient.controller;
 
 import com.zunf.tankbattleclient.enums.GameMsgType;
 import com.zunf.tankbattleclient.enums.ViewEnum;
-import com.zunf.tankbattleclient.exception.BusinessException;
 import com.zunf.tankbattleclient.exception.ErrorCode;
 import com.zunf.tankbattleclient.manager.GameConnectionManager;
 import com.zunf.tankbattleclient.manager.UserInfoManager;
@@ -12,8 +11,7 @@ import com.zunf.tankbattleclient.protobuf.CommonProto;
 import com.zunf.tankbattleclient.protobuf.game.room.GameRoomProto;
 import com.zunf.tankbattleclient.ui.AsyncButton;
 import com.zunf.tankbattleclient.util.MessageUtil;
-import com.zunf.tankbattleclient.util.ProtoBufUtil;
-import javafx.application.Platform;
+import com.zunf.tankbattleclient.manager.SoundManager;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
@@ -64,6 +62,8 @@ public class LobbyController extends ViewLifecycle {
 
     @Override
     public void onShow(Object data) {
+        SoundManager.getInstance().playBackgroundMusic("back_lobby.mp3", 0.2);
+
         // 从缓存中获取用户名
         String nickname = UserInfoManager.getInstance().getNickname();
         if (nickname != null && !nickname.isEmpty()) {
@@ -91,6 +91,8 @@ public class LobbyController extends ViewLifecycle {
 
     @Override
     public void onHide() {
+        SoundManager.getInstance().stopBackgroundMusic();
+
         // 停止定时任务
         if (roomRefreshTask != null && !roomRefreshTask.isCancelled()) {
             roomRefreshTask.cancel(false);

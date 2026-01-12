@@ -20,6 +20,7 @@ import com.zunf.tankbattleclient.util.CanvasScaler;
 import com.zunf.tankbattleclient.util.GameRenderer;
 import com.zunf.tankbattleclient.util.KeyRepeatHandler;
 import com.zunf.tankbattleclient.util.MapDataProcessor;
+import com.zunf.tankbattleclient.manager.SoundManager;
 import javafx.animation.AnimationTimer;
 import javafx.fxml.FXML;
 import javafx.scene.Scene;
@@ -107,6 +108,8 @@ public class GameController extends ViewLifecycle {
 
     @Override
     public void onShow(Object data) {
+        SoundManager.getInstance().playBackgroundMusic("back_game.mp3", 0.9);
+
         if (data instanceof GameRoomProto.StartNotice) {
             this.gameData = (GameRoomProto.StartNotice) data;
             this.matchId = gameData.getMatchId();
@@ -125,6 +128,7 @@ public class GameController extends ViewLifecycle {
 
     @Override
     public void onHide() {
+        SoundManager.getInstance().stopBackgroundMusic();
         cleanup();
     }
 
@@ -752,6 +756,8 @@ public class GameController extends ViewLifecycle {
      * 处理坦克射击
      */
     private void handleTankShoot() {
+        SoundManager.getInstance().playSoundEffect("fire.mp3");
+
         Long playerId = UserInfoManager.getInstance().getPlayerId();
         if (playerId == null || matchId == 0) {
             return;

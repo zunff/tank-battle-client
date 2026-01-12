@@ -12,6 +12,7 @@ import com.zunf.tankbattleclient.protobuf.CommonProto;
 import com.zunf.tankbattleclient.protobuf.game.room.GameRoomProto;
 import com.zunf.tankbattleclient.ui.AsyncButton;
 import com.zunf.tankbattleclient.util.MessageUtil;
+import com.zunf.tankbattleclient.manager.SoundManager;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.event.ActionEvent;
@@ -68,6 +69,8 @@ public class RoomController extends ViewLifecycle {
 
     @Override
     public void onShow(Object data) {
+        SoundManager.getInstance().playBackgroundMusic("back_room.mp3", 0.8);
+
         if (data instanceof GameRoomProto.GameRoomDetail) {
             this.roomDetail = (GameRoomProto.GameRoomDetail) data;
             initializeUI();
@@ -86,6 +89,8 @@ public class RoomController extends ViewLifecycle {
 
     @Override
     public void onHide() {
+        SoundManager.getInstance().stopBackgroundMusic();
+
         unregisterMessageListeners();
         clearResources();
     }

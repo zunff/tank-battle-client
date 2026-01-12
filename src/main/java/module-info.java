@@ -1,6 +1,7 @@
 module com.zunf.tankbattleclient {
     requires javafx.controls;
     requires javafx.fxml;
+    requires javafx.media;
 
     requires org.kordamp.ikonli.javafx;
     requires com.almasb.fxgl.all;
