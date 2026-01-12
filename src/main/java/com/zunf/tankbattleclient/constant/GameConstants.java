@@ -11,12 +11,12 @@ public interface GameConstants {
     int MAP_SIZE = 32;
 
     /**
-     * 每个格子固定32px
+     * 每个格子固定25px
      */
-    int CELL_SIZE = 32;
+    int CELL_SIZE = 25;
 
     /**
-     * Canvas大小 1024x1024
+     * Canvas大小 800x800
      */
     int CANVAS_SIZE = MAP_SIZE * CELL_SIZE;
 
@@ -31,12 +31,12 @@ public interface GameConstants {
     /**
      * 坦克动画移动速度 px/帧
      */
-    double TANK_ANIMATION_SPEED = 2;
+    double TANK_ANIMATION_SPEED = 1;
 
     /**
      * 子弹动画移动速度 px/帧
      */
-    double BULLET_ANIMATION_SPEED = 6;
+    double BULLET_ANIMATION_SPEED = 3;
 
     // ========== 动画持续时间 ==========
     /**
