@@ -14,11 +14,11 @@
     -fx-padding: 30px 50px;
     -fx-effect: dropshadow(gaussian, rgba(52, 152, 219, 0.4), 20, 0, 0, 8);
     -fx-pref-width: 200px;
-    -fx-pref-height: 120px;
+    -fx-pref-height: 160px;
     -fx-min-width: 200px;
-    -fx-min-height: 120px;
+    -fx-min-height: 160px;
     -fx-max-width: 200px;
-    -fx-max-height: 120px;
+    -fx-max-height: 160px;
 }
 
 /* 菜单标题样式 */

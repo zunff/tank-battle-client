@@ -69,7 +69,7 @@ public class RoomController extends ViewLifecycle {
 
     @Override
     public void onShow(Object data) {
-        SoundManager.getInstance().playBackgroundMusic("back_room.mp3", 0.8);
+        SoundManager.getInstance().playBackgroundMusic("back_room.mp3", 0.3);
 
         if (data instanceof GameRoomProto.GameRoomDetail) {
             this.roomDetail = (GameRoomProto.GameRoomDetail) data;
@@ -239,6 +239,10 @@ public class RoomController extends ViewLifecycle {
         // 确保 overlay 在最上层
         overlay.toFront();
 
+        // 停止背景音乐，播放倒计时音效
+        SoundManager.getInstance().stopBackgroundMusic();
+        SoundManager.getInstance().playSoundEffect("54321.mp3", 1.0);
+
         // 倒计时逻辑
         final int[] countdown = { 5 };
         Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
@@ -247,6 +251,8 @@ public class RoomController extends ViewLifecycle {
                 countdownLabel.setText(String.valueOf(countdown[0]));
             } else {
                 countdownLabel.setText("开始！");
+                // 显示"开始！"时播放 gogogo 音效
+                SoundManager.getInstance().playSoundEffect("gogogo.mp3", 0.7);
                 // 倒计时结束，延迟一小段时间后切换到游戏界面
                 Timeline delayTimeline = new Timeline(new KeyFrame(Duration.millis(500), ev -> {
                     ViewManager.getInstance().show(ViewEnum.GAME, startNotice);

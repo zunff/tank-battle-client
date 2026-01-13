@@ -60,6 +60,9 @@ public class GameController extends ViewLifecycle {
     private VBox menuBox;
 
     @FXML
+    private Label soundToggleLabel;
+
+    @FXML
     private Label leaveGameLabel;
 
     @FXML
@@ -108,7 +111,10 @@ public class GameController extends ViewLifecycle {
 
     @Override
     public void onShow(Object data) {
-        SoundManager.getInstance().playBackgroundMusic("back_game.mp3", 0.9);
+        SoundManager.getInstance().playBackgroundMusic("back_game.mp3", 0.8);
+
+        // 初始化声音开关标签
+        updateSoundToggleLabel();
 
         if (data instanceof GameRoomProto.StartNotice) {
             this.gameData = (GameRoomProto.StartNotice) data;
@@ -313,6 +319,35 @@ public class GameController extends ViewLifecycle {
     }
 
     /**
+     * 更新声音开关标签文本
+     */
+    private void updateSoundToggleLabel() {
+        if (soundToggleLabel != null) {
+            SoundManager soundManager = SoundManager.getInstance();
+            boolean enabled = soundManager.isSoundEnabled() && soundManager.isMusicEnabled();
+            soundToggleLabel.setText(enabled ? "声音: 开" : "声音: 关");
+        }
+    }
+
+    /**
+     * 声音开关点击事件
+     */
+    @FXML
+    private void onSoundToggleClick(MouseEvent event) {
+        SoundManager soundManager = SoundManager.getInstance();
+        boolean currentState = soundManager.isSoundEnabled() && soundManager.isMusicEnabled();
+        boolean newState = !currentState;
+
+        // 切换所有声音（音效+背景音乐）
+        soundManager.toggleAllSounds(newState);
+
+        // 更新标签文本
+        updateSoundToggleLabel();
+
+        event.consume();
+    }
+
+    /**
      * 离开游戏点击事件
      */
     @FXML
@@ -481,6 +516,12 @@ public class GameController extends ViewLifecycle {
                 state.setHit(true);
                 state.setHitAnimationStartTime(System.currentTimeMillis());
                 state.setPreviousLife(state.getLife());
+
+                // 如果是玩家自己的坦克受击，播放受击音效
+                Long currentPlayerId = UserInfoManager.getInstance().getPlayerId();
+                if (currentPlayerId != null && playerId == currentPlayerId) {
+                    SoundManager.getInstance().playSoundEffect("hit.mp3", 1.0);
+                }
             }
 
             // 如果满足显示血条的条件（受击或向左/向右转向），显示血条
@@ -756,8 +797,6 @@ public class GameController extends ViewLifecycle {
      * 处理坦克射击
      */
     private void handleTankShoot() {
-        SoundManager.getInstance().playSoundEffect("fire.mp3");
-
         Long playerId = UserInfoManager.getInstance().getPlayerId();
         if (playerId == null || matchId == 0) {
             return;

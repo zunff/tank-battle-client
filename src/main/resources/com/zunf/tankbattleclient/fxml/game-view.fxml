@@ -13,6 +13,7 @@
          <!-- 菜单框 -->
          <VBox fx:id="menuBox" alignment="CENTER" spacing="15.0" styleClass="menu-box" visible="false" managed="false">
             <Label text="菜单" styleClass="menu-title" />
+            <Label fx:id="soundToggleLabel" text="声音: 开" styleClass="menu-item" onMouseClicked="#onSoundToggleClick" />
             <Label fx:id="leaveGameLabel" text="离开游戏" styleClass="menu-item" onMouseClicked="#onLeaveGameClick" />
          </VBox>
 
