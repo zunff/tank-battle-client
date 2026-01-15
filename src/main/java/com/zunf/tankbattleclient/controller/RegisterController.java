@@ -109,10 +109,6 @@ public class RegisterController {
             });
         });
         registerButton.setOnSuccess(responseBo -> {
-            CommonProto.BaseResponse resp = responseBo.getResponse();
-            AuthProto.LoginResponse lr = (AuthProto.LoginResponse) responseBo.getPayload();
-
-            messageLabel.setText("注册成功，=" + lr.getPlayerName());
             ViewManager.getInstance().show(ViewEnum.LOGIN);
         });
         registerButton.setOnError(e -> {
