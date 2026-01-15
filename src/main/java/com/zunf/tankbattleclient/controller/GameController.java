@@ -79,7 +79,7 @@ public class GameController extends ViewLifecycle {
 
     // 游戏数据
     private GameRoomProto.StartNotice gameData;
-    private long matchId;
+    private long roomId;
     private boolean isFirstTick = true;
 
     // 游戏状态
@@ -118,7 +118,7 @@ public class GameController extends ViewLifecycle {
 
         if (data instanceof GameRoomProto.StartNotice) {
             this.gameData = (GameRoomProto.StartNotice) data;
-            this.matchId = gameData.getMatchId();
+            this.roomId = gameData.getRoomId();
 
             loadStylesheet();
             setupWindowAspectRatio();
@@ -353,7 +353,7 @@ public class GameController extends ViewLifecycle {
     @FXML
     private void onLeaveGameClick(MouseEvent event) {
         Long playerId = UserInfoManager.getInstance().getPlayerId();
-        if (playerId == null || matchId == 0) {
+        if (playerId == null || roomId == 0) {
             // 如果没有有效的playerId或matchId，直接返回大厅
             ViewManager.getInstance().show(ViewEnum.LOBBY);
             return;
@@ -362,7 +362,7 @@ public class GameController extends ViewLifecycle {
         // 构建离开匹配请求
         MatchProto.LeaveMatchReq request = MatchProto.LeaveMatchReq.newBuilder()
                 .setPlayerId(playerId)
-                .setMatchId(matchId)
+                .setRoomId(roomId)
                 .build();
 
         // 发送请求并等待响应
@@ -778,13 +778,13 @@ public class GameController extends ViewLifecycle {
         }
 
         Long playerId = UserInfoManager.getInstance().getPlayerId();
-        if (playerId == null || matchId == 0) {
+        if (playerId == null || roomId == 0) {
             return;
         }
 
         MatchProto.OpRequest request = MatchProto.OpRequest.newBuilder()
                 .setPlayerId(playerId)
-                .setMatchId(matchId)
+                .setRoomId(roomId)
                 .setOpParams(MatchProto.OpParams.newBuilder()
                         .setTankDirection(direction.ordinal())
                         .build())
@@ -798,13 +798,13 @@ public class GameController extends ViewLifecycle {
      */
     private void handleTankShoot() {
         Long playerId = UserInfoManager.getInstance().getPlayerId();
-        if (playerId == null || matchId == 0) {
+        if (playerId == null || roomId == 0) {
             return;
         }
 
         MatchProto.OpRequest request = MatchProto.OpRequest.newBuilder()
                 .setPlayerId(playerId)
-                .setMatchId(matchId)
+                .setRoomId(roomId)
                 .build();
 
         GameConnectionManager.getInstance().send(GameMsgType.TANK_SHOOT, request);

@@ -89,9 +89,7 @@ message StartRequest {
 
 message StartNotice {
   int64 roomId = 1;
-  int64 matchId = 2;
-  repeated bytes mapData = 3;  // 使用 repeated bytes 来表示二维字节数组
-  bytes spawnPoint = 4;
+  repeated bytes mapData = 2;  // 使用 repeated bytes 来表示二维字节数组
 }
 
 message LoadedAck {

@@ -6,7 +6,7 @@ option java_outer_classname = "MatchProto";
 
 message OpRequest {
   int64 playerId = 1;
-  int64 matchId = 2;
+  int64 roomId = 2;
   OpParams opParams = 3;
 }
 
@@ -16,7 +16,7 @@ message OpParams {
 
 // tick 数据 start
 message Tick {
-  int64 matchId = 1;
+  int64 roomId = 1;
   int64 tickTimeStamp = 2;
   repeated Tank tanks = 3;
   repeated Bullet bullets = 4;
@@ -47,5 +47,5 @@ message Bullet {
 
 message LeaveMatchReq {
   int64 playerId = 1;
-  int64 matchId = 2;
+  int64 roomId = 2;
 }
